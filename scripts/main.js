@@ -59,7 +59,7 @@ async function performSearch() {
   if (searchTerm !== '') {
     try {
       // Replace 'YOUR_SEARCH_API_ENDPOINT' with your actual API endpoint
-      const response = await fetch('https://preventivecare-backend.onrender.com/api?query=${encodeURIComponent(searchTerm)}');
+      const response = await fetch(`https://preventivecare-backend.onrender.com/api?query=${encodeURIComponent(searchTerm)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -95,28 +95,35 @@ searchInput.addEventListener('keypress', (e) => {
   }
 });
 
-// Function to fetch initial data on page load
+// Function to fetch initial data on page load - REPLACED WITH USER LIST FETCH
 async function fetchInitialData() {
   try {
-    // Replace 'YOUR_INITIAL_DATA_API_ENDPOINT' with your actual API endpoint
-    const response = await fetch('"https://preventivecare-backend.onrender.com/api');
+    // Using the GET all users endpoint now
+    const response = await fetch('https://preventivecare-backend.onrender.com/api/users');
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
+    const users = await response.json();
 
-    // Process the initial data (e.g., display featured articles)
-    console.log('Initial data:', data);
+    // Process the user data (e.g., display a list of users)
+    console.log('Users:', users);
 
-    // Here you would typically update the DOM with the fetched data
-    // For now, let's just log a message
-    console.log('Initial data loaded and processed.');
+    // Example of displaying users (you'll need to adapt this to your HTML)
+    // const userListElement = document.getElementById('user-list'); // Assuming you have an element with this ID
+    // if (userListElement) {
+    //   users.forEach(user => {
+    //     const listItem = document.createElement('li');
+    //     listItem.textContent = user.username || user.email; // Adjust based on your user object
+    //     userListElement.appendChild(listItem);
+    //   });
+    // }
+
 
   } catch (error) {
-    console.error('Initial data API error:', error);
-    // Optionally display an error message on the page
+    console.error('User data API error:', error);
+    alert('Failed to load user data.'); // Consider a more user-friendly display
   }
 }
 
@@ -137,8 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fetch initial data
   fetchInitialData();
 });
-
- /**
+/**
  * preventive-features
  * Using BEM naming convention and component-scoped structure
  */
@@ -148,7 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const modals = document.querySelectorAll('.js-modal');
   const searchButton = document.getElementById('search-button'); // Assuming you have a search button
   const searchInput = document.getElementById('search-input'); // Assuming you have a search input
-  const API_ENDPOINT = "https://preventivecare-backend.onrender.com/api";
+  const API_ENDPOINT = "https://preventivecare-backend.onrender.com/api/health-tips";
   let allData = []; // Store fetched data
 
   // Function to fetch data from the API
@@ -684,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // NEW FUNCTIONS: Data Fetching
 
     function fetchData() {
-        fetch('https://preventivecare-backend.onrender.com/api')
+        fetch('https://preventivecare-backend.onrender.com/api/users/:id')
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -718,7 +724,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchDataWithSearch(searchTerm) {
-        fetch(`https://preventivecare-backend.onrender.com/api?search=${searchTerm}`) // Modify the endpoint as needed.
+        fetch(`https://preventivecare-backend.onrender.com/api/users?search=${searchTerm}`) // Modify the endpoint as needed.
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -745,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Uses BEM structure and namespacing
  */
 // Wrap everything in a namespace to avoid global conflicts
-// symptom-checker.js
+// 
 class SymptomChecker {
     constructor() {
         this.landingContainer = document.querySelector('.symptom-checker__landing-container');
@@ -847,7 +853,7 @@ class SymptomChecker {
 
     async checkSymptoms(age, gender, symptoms, duration) {
         try {
-            const response = await fetch('https://preventivecare-backend.onrender.com/api/symptom-checker/check', {  // Replace with your actual URL
+            const response = await fetch('https://preventivecare-backend.onrender.com/api/symptom-checker/check', {  // POST Endpoint
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -874,7 +880,7 @@ class SymptomChecker {
 
     async fetchInitialData() {
         try {
-            const response = await fetch("https://preventivecare-backend.onrender.com/api/symptom-checker/check");
+            const response = await fetch("https://preventivecare-backend.onrender.com/api/symptom-checker/check"); // GET Endpoint
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -896,8 +902,23 @@ class SymptomChecker {
         this.spinner.classList.add('symptom-checker__hidden');
         this.buttonText.textContent = 'بررسی علائم';
     }
-}
 
+     async getConditionInfo(conditionName) {
+        try {
+            const response = await fetch(`https://preventivecare-backend.onrender.com/api/symptom-checker/condition/${conditionName}`); // GET Condition Endpoint
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const conditionData = await response.json();
+            console.log("Condition data fetched:", conditionData);
+            return conditionData; // Return the fetched data
+        } catch (error) {
+            console.error("Error fetching condition data:", error);
+            this.showError('Failed to fetch condition information.');
+            return null;
+        }
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     new SymptomChecker();
@@ -905,7 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Health Exploration Component JavaScript (Scoped to "he" namespace)
 /* Global Variables */
 document.addEventListener('DOMContentLoaded', () => {
-  const API_ENDPOINT = 'https://preventivecare-backend.onrender.com/api';
+  const API_ENDPOINT = 'https://preventivecare-backend.onrender.com/api/:topic';
 
   // Function to fetch data from the API based on the topic
   async function fetchPaperData(topic) {
@@ -1390,6 +1411,8 @@ const HealthChat = (function() {
     // Example: Fetch initial data from the server
     // In a real application, replace this with an actual API call
     console.log('Fetching initial data...');
+    // Fetch Chat Rooms
+    fetchChatRooms();
   }
 
   function fetchData(searchTerm) {
@@ -1407,26 +1430,137 @@ const HealthChat = (function() {
   function sendDataToAPI(data) {
     // Replace this with an actual API call to send data to the server
     console.log('Sending data to API:', data);
-     // fetch('/api/messages', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify(data)
-      // })
-      // .then(response => {
-      //   if (!response.ok) {
-      //     throw new Error('Network response was not ok');
-      //   }
-      //   return response.json();
-      // })
-      // .then(data => {
-      //   console.log('Success:', data);
-      // })
-      // .catch(error => {
-      //   console.error('Error:', error);
-      // });
+     fetch('https://preventivecare-backend.onrender.com/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
   }
+
+    // Function to fetch chat rooms from the API
+  function fetchChatRooms() {
+    fetch('https://preventivecare-backend.onrender.com/api/chat/rooms', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch chat rooms');
+      }
+      return response.json();
+    })
+    .then(rooms => {
+      // Handle the chat rooms data, e.g., update the sidebar
+      console.log('Chat Rooms:', rooms);
+      // Assuming you want to display the rooms in the sidebar
+      updateSidebarRooms(rooms);
+    })
+    .catch(error => {
+      console.error('Error fetching chat rooms:', error);
+      displayErrorMessage('Failed to load chat rooms.');
+    });
+  }
+
+  // Function to fetch messages for a specific room
+  function fetchRoomMessages(room) {
+    fetch(`https://preventivecare-backend.onrender.com/api/chat/rooms/${room}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages for room: ' + room);
+      }
+      return response.json();
+    })
+    .then(messages => {
+      // Handle the messages for the room, e.g., display them in the chat window
+      console.log('Messages for room ' + room + ':', messages);
+      displayRoomMessages(messages);
+    })
+    .catch(error => {
+      console.error('Error fetching messages for room ' + room + ':', error);
+      displayErrorMessage('Failed to load messages for room: ' + room);
+    });
+  }
+
+  function deleteMessage(messageId) {
+    fetch(`https://preventivecare-backend.onrender.com/api/chat/${messageId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Failed to delete message with ID: ${messageId}`);
+        }
+        console.log(`Message with ID ${messageId} deleted successfully`);
+        // Optionally, refresh the message list for the current room
+        if (currentRoom) {
+            fetchRoomMessages(currentRoom);
+        }
+    })
+    .catch(error => {
+        console.error(`Error deleting message with ID ${messageId}:`, error);
+        displayErrorMessage(`Failed to delete message: ${error.message}`);
+    });
+}
+
+
+  // Function to update the sidebar with the chat rooms
+  function updateSidebarRooms(rooms) {
+    const sidebar = document.querySelector('.health-chat__sidebar'); // Assuming your sidebar has this class
+    if (!sidebar) {
+      console.error('Sidebar element not found');
+      return;
+    }
+
+    // Clear existing rooms
+    sidebar.innerHTML = '';
+
+    rooms.forEach(room => {
+      const roomElement = document.createElement('div');
+      roomElement.classList.add('health-chat__sidebar-room');
+      roomElement.dataset.room = room.name; // Assuming each room object has a 'name' property
+      roomElement.textContent = room.displayName || room.name; // Use displayName if available, otherwise use name
+
+      roomElement.addEventListener('click', () => {
+        handleRoomSelection(room.name);
+      });
+
+      sidebar.appendChild(roomElement);
+    });
+  }
+
+  // Function to display room messages in the chat window
+  function displayRoomMessages(messages) {
+    // Clear existing messages
+    DOM.messages.innerHTML = '';
+
+    messages.forEach(message => {
+      addMessageToChat(message.user, message.message, message.timestamp);
+    });
+  }
+
 
   /* Public API */
   return {
@@ -1616,4 +1750,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Do NOT set any defaults - we want everything hidden initially
     // Removed the code that automatically clicked the first item
 });
+
 
