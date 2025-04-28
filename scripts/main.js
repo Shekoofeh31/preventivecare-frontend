@@ -58,8 +58,8 @@ async function performSearch() {
   const searchTerm = searchInput.value.trim();
   if (searchTerm !== '') {
     try {
-      // Replace 'YOUR_SEARCH_API_ENDPOINT' with your actual API endpoint
-      const response = await fetch(`https://preventivecare-backend.onrender.com/api?query=${encodeURIComponent(searchTerm)}`);
+      // Using the correct API endpoint with search query parameter
+      const response = await fetch(`https://preventivecare-backend.onrender.com/api?search=${encodeURIComponent(searchTerm)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -95,38 +95,42 @@ searchInput.addEventListener('keypress', (e) => {
   }
 });
 
-// Function to fetch initial data on page load - REPLACED WITH USER LIST FETCH
+// Function to fetch initial data on page load - Now using health tips endpoint
 async function fetchInitialData() {
   try {
-    // Using the GET all users endpoint now
-    const response = await fetch('https://preventivecare-backend.onrender.com/api/users');
+    // Using the health tips endpoint instead of users since you mentioned no login/signup
+    const response = await fetch('https://preventivecare-backend.onrender.com/api/health-tips');
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const users = await response.json();
+    const healthTips = await response.json();
 
-    // Process the user data (e.g., display a list of users)
-    console.log('Users:', users);
+    // Process the health tips data
+    console.log('Health Tips:', healthTips);
 
-    // Example of displaying users (you'll need to adapt this to your HTML)
-    // const userListElement = document.getElementById('user-list'); // Assuming you have an element with this ID
-    // if (userListElement) {
-    //   users.forEach(user => {
-    //     const listItem = document.createElement('li');
-    //     listItem.textContent = user.username || user.email; // Adjust based on your user object
-    //     userListElement.appendChild(listItem);
+    // Example of how you might display health tips (commented out as HTML structure not provided)
+    // const tipsContainer = document.getElementById('health-tips-container'); 
+    // if (tipsContainer && healthTips.length > 0) {
+    //   healthTips.forEach(tip => {
+    //     const tipElement = document.createElement('div');
+    //     tipElement.classList.add('ph-health-tip');
+    //     tipElement.innerHTML = `
+    //       <h3 class="ph-health-tip__title">${tip.title}</h3>
+    //       <p class="ph-health-tip__content">${tip.content}</p>
+    //       <span class="ph-health-tip__category">${tip.category}</span>
+    //     `;
+    //     tipsContainer.appendChild(tipElement);
     //   });
     // }
 
-
   } catch (error) {
-    console.error('User data API error:', error);
-    alert('Failed to load user data.'); // Consider a more user-friendly display
+    console.error('Health tips API error:', error);
+    // More user-friendly error handling than an alert
+    console.log('Failed to load health tips data. Please try refreshing the page.');
   }
 }
-
 
 // Initialize language and fetch initial data on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -148,12 +152,16 @@ document.addEventListener('DOMContentLoaded', () => {
  * preventive-features
  * Using BEM naming convention and component-scoped structure
  */
+/**
+ * preventive-features
+ * Using BEM naming convention and component-scoped structure
+ */
 document.addEventListener('DOMContentLoaded', function() {
   const showModalButtons = document.querySelectorAll('.js-show-modal');
   const closeModalButtons = document.querySelectorAll('.js-close-modal');
   const modals = document.querySelectorAll('.js-modal');
-  const searchButton = document.getElementById('search-button'); // Assuming you have a search button
-  const searchInput = document.getElementById('search-input'); // Assuming you have a search input
+  const searchButton = document.querySelector('.ph-search__button'); // Updated selector to match your HTML
+  const searchInput = document.querySelector('.ph-search__input'); // Updated selector to match your HTML
   const API_ENDPOINT = "https://preventivecare-backend.onrender.com/api/health-tips";
   let allData = []; // Store fetched data
 
@@ -162,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       let url = API_ENDPOINT;
       if (searchTerm) {
-        url += `?search=${searchTerm}`; // Adjust the query parameter based on your API
+        url += `?search=${searchTerm}`; // This works with your general API structure
       }
 
       const response = await fetch(url);
@@ -183,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Function to render data (you'll need to adapt this to your specific HTML structure)
   const renderData = (data) => {
     // Example: Assuming you have a container with an ID 'data-container'
-    const dataContainer = document.getElementById('data-container');
+    const dataContainer = document.querySelector('.preventive-featured__grid');
     if (!dataContainer) {
       console.error("Data container element not found.");
       return;
@@ -194,14 +202,20 @@ document.addEventListener('DOMContentLoaded', function() {
     data.forEach(item => {
       // Create elements to display the data (adapt this to your data structure)
       const itemElement = document.createElement('div');
-      itemElement.classList.add('data-item'); // Example BEM class
+      itemElement.classList.add('preventive-featured__card'); // Using your BEM class
 
       itemElement.innerHTML = `
-        <h3>${item.title}</h3>
-        <p>${item.description}</p>
-        <button class="js-show-modal" data-modal-id="modal-${item.id}">Read More</button>
-        <div id="full-content-modal-${item.id}" style="display:none;">
-          ${item.fullContent}
+        <div class="preventive-featured__card-image-wrapper">
+          <img src="${item.imageUrl || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJYZuq4zUPdxzAtg0V06EWNLp8cN8p8zURUQ&s'}" alt="${item.title}" class="preventive-featured__card-image">
+        </div>
+        <div class="preventive-featured__card-content">
+          <span class="preventive-featured__card-tag">${item.category}</span>
+          <h3 class="preventive-featured__card-title">${item.title}</h3>
+          <p class="preventive-featured__card-description">${item.description}</p>
+          <a href="#" class="preventive-featured__card-link js-show-modal" data-modal-id="modal-${item.id}">بیشتر بدانید ←</a>
+        </div>
+        <div id="full-content-${item.id}" style="display:none;">
+          ${item.content || item.fullContent || item.description}
         </div>
       `;
 
@@ -215,14 +229,18 @@ document.addEventListener('DOMContentLoaded', function() {
         event.preventDefault();
         const modalId = this.dataset.modalId;
         const modal = document.getElementById(modalId);
-        const fullContent = document.getElementById(`full-content-${modalId.substring(modalId.length - 1)}`);
+        if (modal) {
+          const itemId = modalId.replace('modal-', '');
+          const fullContent = document.getElementById(`full-content-${itemId}`);
 
-        modal.classList.add('is-active');
-        modal.querySelector('.preventive-featured__modal-content').innerHTML = fullContent.innerHTML; // محتوا را به مدال اضافه می‌کنیم
-        document.body.style.overflow = 'hidden'; // از اسکرول کردن صفحه جلوگیری می‌کنیم
+          modal.classList.add('is-active');
+          if (fullContent && modal.querySelector('.preventive-featured__modal-content')) {
+            modal.querySelector('.preventive-featured__modal-content').innerHTML = fullContent.innerHTML;
+          }
+          document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
       });
     });
-
   };
 
   // Event listener for search button click
@@ -231,21 +249,35 @@ document.addEventListener('DOMContentLoaded', function() {
       const searchTerm = searchInput.value.trim();
       fetchData(searchTerm);
     });
+    
+    // Add event listener for pressing Enter in the search input
+    searchInput.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        const searchTerm = searchInput.value.trim();
+        fetchData(searchTerm);
+      }
+    });
   }
 
   // Initial data fetch on page load
   fetchData();
 
+  // Existing modal functionality for static content
   showModalButtons.forEach(button => {
     button.addEventListener('click', function(event) {
       event.preventDefault();
       const modalId = this.dataset.modalId;
       const modal = document.getElementById(modalId);
-      const fullContent = document.getElementById(`full-content-${modalId.substring(modalId.length - 1)}`);
+      if (modal) {
+        const itemId = modalId.replace('modal-', '');
+        const fullContent = document.getElementById(`full-content-${itemId}`);
 
-      modal.classList.add('is-active');
-      modal.querySelector('.preventive-featured__modal-content').innerHTML = fullContent.innerHTML; // محتوا را به مدال اضافه می‌کنیم
-      document.body.style.overflow = 'hidden'; // از اسکرول کردن صفحه جلوگیری می‌کنیم
+        modal.classList.add('is-active');
+        if (fullContent && modal.querySelector('.preventive-featured__modal-content')) {
+          modal.querySelector('.preventive-featured__modal-content').innerHTML = fullContent.innerHTML;
+        }
+        document.body.style.overflow = 'hidden';
+      }
     });
   });
 
@@ -253,19 +285,19 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', function() {
       const modal = this.closest('.js-modal');
       modal.classList.remove('is-active');
-      document.body.style.overflow = 'auto'; // اجازه اسکرول کردن صفحه را می‌دهیم
+      document.body.style.overflow = 'auto'; // Allow scrolling again
     });
   });
 
-  // بستن مدال با کلیک خارج از مدال
+  // Close modal when clicking outside
   document.addEventListener('click', function(event) {
-    if (event.target === document.querySelector('.js-modal.is-active')) {
-      document.querySelector('.js-modal.is-active').classList.remove('is-active');
+    if (event.target.classList.contains('js-modal') && event.target.classList.contains('is-active')) {
+      event.target.classList.remove('is-active');
       document.body.style.overflow = 'auto';
     }
   });
 
-  // بستن مدال با زدن کلید Escape
+  // Close modal with Escape key
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && document.querySelector('.js-modal.is-active')) {
       document.querySelector('.js-modal.is-active').classList.remove('is-active');
@@ -294,9 +326,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const emailResultsBtn = document.getElementById('email-results');
     const restartBtn = document.getElementById('restart-assessment');
 
-    // NEW: Search button (assuming you have one)
+    // Search button (assuming you have one)
     const searchButton = document.getElementById('search-button'); // You'll need to add this button in your HTML
     const searchInput = document.getElementById('search-input'); // you need this as well in HTML
+    
     // Section order for progress tracking
     const sectionOrder = ['demographic', 'medical-history', 'lifestyle', 'chronic-risks', 'acute-risks'];
     let currentSection = 0;
@@ -311,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
     emailResultsBtn.addEventListener('click', emailResults);
     restartBtn.addEventListener('click', restartAssessment);
 
-    // NEW: Event listener for search button (if it exists)
+    // Event listener for search button (if it exists)
     if (searchButton) {
         searchButton.addEventListener('click', handleSearch);
     }
@@ -453,7 +486,68 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show results section
             mainContainer.querySelector('.assessment-form').style.display = 'none';
             resultsSection.style.display = 'block';
+
+            // Optional: Submit assessment data to backend
+            submitAssessmentData(formData, riskScores);
         }
+    }
+
+    function submitAssessmentData(formData, riskScores) {
+        // Convert FormData to a plain object for JSON.stringify
+        const assessmentData = {
+            personal: {
+                name: formData.get('name'),
+                age: formData.get('age'),
+                gender: formData.get('gender'),
+                height: formData.get('height'),
+                weight: formData.get('weight'),
+                ethnicity: formData.get('ethnicity')
+            },
+            medicalHistory: {
+                existingConditions: formData.getAll('existing_conditions'),
+                familyHistory: formData.getAll('family_history'),
+                medications: formData.get('medications'),
+                lastCheckup: formData.get('last_checkup')
+            },
+            lifestyle: {
+                smoking: formData.get('smoking'),
+                alcohol: formData.get('alcohol'),
+                exercise: formData.get('exercise'),
+                diet: formData.get('diet'),
+                stress: formData.get('stress'),
+                sleep: formData.get('sleep')
+            },
+            riskFactors: {
+                bloodPressure: formData.get('blood_pressure'),
+                cholesterol: formData.get('cholesterol'),
+                bloodSugar: formData.get('blood_sugar'),
+                symptoms: formData.getAll('symptoms')
+            },
+            riskScores: riskScores
+        };
+
+        // Send data to the backend API
+        fetch('https://preventivecare-backend.onrender.com/api/symptom-checker/check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(assessmentData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Assessment data saved:', data);
+            // Optionally update UI with any additional information from server
+        })
+        .catch(error => {
+            console.error('Error saving assessment data:', error);
+            // No need to alert the user as the assessment results are already shown
+        });
     }
 
     function calculateRiskScores(formData) {
@@ -656,6 +750,67 @@ document.addEventListener('DOMContentLoaded', function() {
             li.textContent = rec;
             recommendationsList.appendChild(li);
         });
+        
+        // Optionally fetch additional health tips based on the highest risk category
+        fetchRelevantHealthTips(scores);
+    }
+    
+    function fetchRelevantHealthTips(scores) {
+        // Determine highest risk category
+        let highestRisk = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
+        let category;
+        
+        // Map risk category to health tip category
+        switch(highestRisk) {
+            case 'heart':
+                category = 'cardiovascular';
+                break;
+            case 'diabetes':
+                category = 'diabetes';
+                break;
+            case 'respiratory':
+                category = 'respiratory';
+                break;
+            case 'infectious':
+                category = 'infection';
+                break;
+            default:
+                category = 'general';
+        }
+        
+        // Fetch relevant health tips
+        fetch(`https://preventivecare-backend.onrender.com/api/health-tips/category/${category}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // If you want to display these tips, add them to the recommendations
+                if (data && data.length > 0) {
+                    const recommendationsList = document.getElementById('recommendations-list');
+                    
+                    // Add a separator
+                    const separator = document.createElement('li');
+                    separator.className = 'recommendations__separator';
+                    separator.textContent = 'توصیه‌های تخصصی بیشتر:';
+                    recommendationsList.appendChild(separator);
+                    
+                    // Add up to 3 specialized tips
+                    const tipsToShow = data.slice(0, 3);
+                    tipsToShow.forEach(tip => {
+                        const li = document.createElement('li');
+                        li.className = 'recommendations__item recommendations__item--specialized';
+                        li.textContent = tip.content || tip.title;
+                        recommendationsList.appendChild(li);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching health tips:', error);
+                // No need to alert user as this is supplementary information
+            });
     }
 
     function printResults() {
@@ -687,10 +842,9 @@ document.addEventListener('DOMContentLoaded', function() {
         updateProgress();
     }
 
-    // NEW FUNCTIONS: Data Fetching
-
-    function fetchData() {
-        fetch('https://preventivecare-backend.onrender.com/api/users/:id')
+    // Data Fetching Functions
+    function fetchHealthData() {
+        fetch('https://preventivecare-backend.onrender.com/api/health-tips')
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -698,33 +852,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                // Process the fetched data here. For example:
-                console.log('Fetched data:', data);
-                // You might want to populate certain form fields or display information
-                // based on the data you receive. Adapt this section to your needs.
-
-                //Example: pre-fill the name field (assuming it exists)
-                // if(data.name) {
-                //    document.getElementById('name').value = data.name;
-                // }
+                console.log('Fetched health tips:', data);
+                // You could use this data to populate general health advice
+                // on the landing page or elsewhere in the app
             })
             .catch(error => {
                 console.error('Fetch error:', error);
-                alert('Failed to fetch data from the API.'); // User-friendly error message
+                // Silent error - not critical for the assessment functionality
             });
     }
 
     function handleSearch() {
-        const searchTerm = searchInput.value; // Get the search term
+        const searchTerm = searchInput.value;
         if (searchTerm) {
             fetchDataWithSearch(searchTerm);
         } else {
-            alert("Please enter a search term");
+            alert("لطفاً عبارت جستجو را وارد کنید");
         }
     }
 
     function fetchDataWithSearch(searchTerm) {
-        fetch(`https://preventivecare-backend.onrender.com/api/users?search=${searchTerm}`) // Modify the endpoint as needed.
+        fetch(`https://preventivecare-backend.onrender.com/api?search=${searchTerm}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -732,19 +880,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                // Process the search results here.
                 console.log('Search results:', data);
-                // Update the UI to display the search results.
-                // Example: populate a results list
+                // Update the UI to display the search results
+                // This would depend on how you want to display search results
             })
             .catch(error => {
                 console.error('Search error:', error);
-                alert('Failed to fetch search results.'); // User-friendly error message
+                alert('جستجو با خطا مواجه شد.');
             });
     }
 
-    // Call fetchData on page load
-    fetchData();
+    function checkAPIHealth() {
+        fetch('https://preventivecare-backend.onrender.com/health')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('API health status:', data);
+                // If you want to show a status indicator somewhere in your UI
+            })
+            .catch(error => {
+                console.error('API health check error:', error);
+                // Silent failure - not critical for user experience
+            });
+    }
+
+    // Initialize by checking API health and fetching any needed initial data
+    checkAPIHealth();
+    fetchHealthData();
 });
 /**
  * Symptom Checker Application
@@ -853,43 +1019,43 @@ class SymptomChecker {
 
     async checkSymptoms(age, gender, symptoms, duration) {
         try {
-            const response = await fetch('https://preventivecare-backend.onrender.com/api/symptom-checker/check', {  // POST Endpoint
+            const response = await fetch('https://preventivecare-backend.onrender.com/api/symptom-checker/check', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ age, gender, symptoms, duration }) // Send data as JSON
+                body: JSON.stringify({ age, gender, symptoms, duration })
             });
 
             if (!response.ok) {
-                const errorData = await response.json(); // Parse error response
+                const errorData = await response.json();
                 console.error('Error:', errorData);
-                this.showError(`Error: ${errorData.message || 'An error occurred.'}`);  // Display error
+                this.showError(`خطا: ${errorData.message || 'خطایی رخ داده است.'}`);
                 return null;
             }
 
             const data = await response.json();
             console.log(data);
-            return data.diagnosis;  // Or however you want to display it
+            return data.diagnosis;
         } catch (error) {
             console.error('Fetch error:', error);
-            this.showError('An unexpected error occurred.');
+            this.showError('خطای غیرمنتظره رخ داده است.');
             return null;
         }
     }
 
     async fetchInitialData() {
         try {
-            const response = await fetch("https://preventivecare-backend.onrender.com/api/symptom-checker/check"); // GET Endpoint
+            const response = await fetch("https://preventivecare-backend.onrender.com/api/symptom-checker/check");
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             this.initialData = await response.json();
             console.log("Initial data fetched:", this.initialData);
-            // You can do something with the initial data here, like populating a list or displaying it.
+            // You can do something with the initial data here if needed
         } catch (error) {
             console.error("Error fetching initial data:", error);
-            this.showError('فشل في جلب البيانات الأولية.'); // Show error to user
+            this.showError('خطا در دریافت اطلاعات اولیه.');
         }
     }
 
@@ -903,18 +1069,18 @@ class SymptomChecker {
         this.buttonText.textContent = 'بررسی علائم';
     }
 
-     async getConditionInfo(conditionName) {
+    async getConditionInfo(conditionName) {
         try {
-            const response = await fetch(`https://preventivecare-backend.onrender.com/api/symptom-checker/condition/${conditionName}`); // GET Condition Endpoint
+            const response = await fetch(`https://preventivecare-backend.onrender.com/api/symptom-checker/condition/${encodeURIComponent(conditionName)}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const conditionData = await response.json();
             console.log("Condition data fetched:", conditionData);
-            return conditionData; // Return the fetched data
+            return conditionData;
         } catch (error) {
             console.error("Error fetching condition data:", error);
-            this.showError('Failed to fetch condition information.');
+            this.showError('خطا در دریافت اطلاعات شرایط.');
             return null;
         }
     }
@@ -926,47 +1092,45 @@ document.addEventListener('DOMContentLoaded', () => {
 // Health Exploration Component JavaScript (Scoped to "he" namespace)
 /* Global Variables */
 document.addEventListener('DOMContentLoaded', () => {
-  const API_ENDPOINT = 'https://preventivecare-backend.onrender.com/api/:topic';
-
+  const BASE_API_URL = 'https://preventivecare-backend.onrender.com/api';
+  
   // Function to fetch data from the API based on the topic
   async function fetchPaperData(topic) {
     try {
-      const response = await fetch(`${API_ENDPOINT}/${topic}`);
+      // Using the proper endpoint format for fetching topic data
+      const response = await fetch(`${BASE_API_URL}/${topic}`);
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
-      return data; // Assuming the API returns the data you need for the card
+      return data;
     } catch (error) {
       console.error('Failed to fetch paper data:', error);
       return null;
     }
   }
-
+  
   // Function to update card content with fetched data
   async function updateCardContent(card) {
     const topic = card.dataset.topic;
     const paperData = await fetchPaperData(topic);
-
     if (paperData) {
-      // Update title and abstract (adjust based on your API response structure)
+      // Update title and abstract
       card.querySelector('.he-paper__title').textContent = paperData.title || 'Title not available';
       card.querySelector('.he-paper__abstract').innerHTML = paperData.abstract || 'Abstract not available';
-
       // Update download URL
       const downloadButton = card.querySelector('.he-paper__btn--download');
-      downloadButton.dataset.downloadUrl = paperData.download_url || '#'; //  or the correct field
-
+      downloadButton.dataset.downloadUrl = paperData.download_url || '#';
       // Optionally, update the image URL too
       //card.querySelector('.he-card__image').style.backgroundImage = `url('${paperData.image_url}')`;
     }
   }
-
+  
   // Fetch data for each card on page load
   document.querySelectorAll('.he-card').forEach(card => {
     updateCardContent(card);
   });
-
+  
   // Event listener for "مشاهده مقاله" button
   document.querySelectorAll('.he-card__btn').forEach(button => {
     button.addEventListener('click', event => {
@@ -974,36 +1138,33 @@ document.addEventListener('DOMContentLoaded', () => {
       const paperTitle = card.querySelector('.he-paper__title').textContent;
       const paperAbstract = card.querySelector('.he-paper__abstract').innerHTML;
       const downloadUrl = card.querySelector('.he-paper__btn--download').dataset.downloadUrl;
-
       const modal = document.querySelector('.he-modal');
       modal.querySelector('.he-modal__title').textContent = paperTitle;
       modal.querySelector('.he-modal__body').innerHTML = paperAbstract;
-
       // Set up the download button in the modal
       const downloadButton = modal.querySelector('.he-modal__btn--download');
       downloadButton.onclick = () => {
         window.location.href = downloadUrl; // Open download URL in current tab
       };
-
       modal.classList.add('he-modal--active');
       document.body.classList.add('he-modal-open');
     });
   });
-
+  
   // Event listener for modal close button
   document.querySelector('.he-modal__close').addEventListener('click', () => {
     const modal = document.querySelector('.he-modal');
     modal.classList.remove('he-modal--active');
     document.body.classList.remove('he-modal-open');
   });
-
+  
   // Event listener for modal close button in the footer
   document.querySelector('.he-modal__btn--close').addEventListener('click', () => {
     const modal = document.querySelector('.he-modal');
     modal.classList.remove('he-modal--active');
     document.body.classList.remove('he-modal-open');
   });
-
+  
   // Close modal if background is clicked
   document.querySelector('.he-modal').addEventListener('click', event => {
     if (event.target === event.currentTarget) {
@@ -1020,6 +1181,9 @@ const HealthChat = (function() {
   let socket = null;
   let reconnectionAttempts = 0;
   const maxReconnectionAttempts = 5;
+  
+  // Base API URL
+  const API_BASE_URL = "https://preventivecare-backend.onrender.com/api";
 
   /* DOM Elements Cache */
   let DOM = {};
@@ -1028,7 +1192,7 @@ const HealthChat = (function() {
   function init() {
     cacheDOM();
     bindEvents();
-    // Fetch data on page load (example - adjust as needed)
+    // Fetch data on page load
     fetchInitialData();
   }
 
@@ -1056,9 +1220,8 @@ const HealthChat = (function() {
       messageInput: document.querySelector('#health-chat__message-input'),
       messages: document.querySelector('#health-chat__messages'),
       onlineCount: document.querySelector('#health-chat__online-count'),
-      // Add a potential search button (if needed in HTML)
-      searchButton: document.querySelector('#health-chat__search-button'), //Example, if there's a search feature
-      searchInput: document.querySelector('#health-chat__search-input'), // Example
+      searchButton: document.querySelector('#health-chat__search-button'),
+      searchInput: document.querySelector('#health-chat__search-input'),
     };
   }
 
@@ -1095,8 +1258,28 @@ const HealthChat = (function() {
         const password = DOM.password.value.trim();
 
         if (validateLogin(username, password)) {
-          currentUser = username;
-          showChatInterface(username);
+          // Use the login API endpoint
+          fetch(`${API_BASE_URL}/users/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Login failed');
+            }
+            return response.json();
+          })
+          .then(data => {
+            currentUser = username;
+            showChatInterface(username);
+          })
+          .catch(error => {
+            console.error('Login error:', error);
+            alert('نام کاربری یا رمز عبور نامعتبر است!');
+          });
         } else {
           alert('نام کاربری یا رمز عبور نامعتبر است!');
         }
@@ -1112,8 +1295,28 @@ const HealthChat = (function() {
         const confirmPassword = DOM.regConfirmPassword.value.trim();
 
         if (validateRegistration(username, password, confirmPassword)) {
-          alert('ثبت نام با موفقیت انجام شد! لطفا وارد شوید.');
-          DOM.showLoginLink.click();
+          // Use the register API endpoint
+          fetch(`${API_BASE_URL}/users/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Registration failed');
+            }
+            return response.json();
+          })
+          .then(data => {
+            alert('ثبت نام با موفقیت انجام شد! لطفا وارد شوید.');
+            DOM.showLoginLink.click();
+          })
+          .catch(error => {
+            console.error('Registration error:', error);
+            alert('ثبت نام ناموفق بود! لطفا ورودی های خود را بررسی کنید.');
+          });
         } else {
           alert('ثبت نام ناموفق بود! لطفا ورودی های خود را بررسی کنید.');
         }
@@ -1158,7 +1361,7 @@ const HealthChat = (function() {
       });
     }
 
-      // Example: Handling Search Button Click
+    // Handling Search Button Click
     if (DOM.searchButton) {
       DOM.searchButton.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1176,11 +1379,10 @@ const HealthChat = (function() {
   function sendCurrentMessage() {
     const message = DOM.messageInput.value.trim();
     if (message && currentRoom) {
-       // Send the message to the server using socket.io
+      // Send the message to the server using socket.io
       sendMessage(message);
 
-      // Optionally, send the message to the API endpoint as well
-      // Useful if you want to store the messages in a database
+      // Also send the message to the API endpoint to store in DB
       sendDataToAPI({
         room: currentRoom,
         user: currentUser,
@@ -1245,6 +1447,9 @@ const HealthChat = (function() {
     if (DOM.messages) {
       DOM.messages.innerHTML = '';
     }
+
+    // Fetch messages for this room
+    fetchRoomMessages(roomName);
   }
 
   /* Socket.IO Initialization */
@@ -1255,8 +1460,8 @@ const HealthChat = (function() {
     }
 
     try {
-      // Replace with your actual server URL
-      socket = io("https://www.wellnesssentinel.ir", {
+      // Connect to the socket server
+      socket = io("https://preventivecare-backend.onrender.com", {
         transports: ["websocket", "polling"],
         reconnectionAttempts: maxReconnectionAttempts
       });
@@ -1286,7 +1491,7 @@ const HealthChat = (function() {
         reconnectWithDelay();
       });
 
-       socket.on('reconnect_attempt', (attemptNumber) => {
+      socket.on('reconnect_attempt', (attemptNumber) => {
         console.log(`Attempting to reconnect... (attempt ${attemptNumber})`);
         displayErrorMessage(`تلاش برای اتصال مجدد... (تلاش ${attemptNumber})`);
       });
@@ -1341,7 +1546,7 @@ const HealthChat = (function() {
     }
   }
 
-    function addMessageToChat(username, message, time, isSelf = false) {
+  function addMessageToChat(username, message, time, isSelf = false) {
     if (!DOM.messages) return;
 
     const messageEl = document.createElement('div');
@@ -1374,8 +1579,10 @@ const HealthChat = (function() {
     const errorEl = document.createElement('div');
     errorEl.className = 'health-chat__message health-chat__message--error';
     errorEl.textContent = message;
-    DOM.messages.appendChild(errorEl);
-    DOM.messages.scrollTop = DOM.messages.scrollHeight;
+    if (DOM.messages) {
+      DOM.messages.appendChild(errorEl);
+      DOM.messages.scrollTop = DOM.messages.scrollHeight;
+    }
   }
 
   function joinRoom(room) {
@@ -1394,7 +1601,7 @@ const HealthChat = (function() {
     }
   }
 
-   function reconnectWithDelay() {
+  function reconnectWithDelay() {
     if (reconnectionAttempts < maxReconnectionAttempts) {
       reconnectionAttempts++;
       console.log(`Attempting to reconnect in 5 seconds... (attempt ${reconnectionAttempts})`);
@@ -1405,55 +1612,85 @@ const HealthChat = (function() {
     }
   }
 
-
-  // Placeholder functions for server-side interactions
+  // API Interactions
   function fetchInitialData() {
-    // Example: Fetch initial data from the server
-    // In a real application, replace this with an actual API call
     console.log('Fetching initial data...');
     // Fetch Chat Rooms
     fetchChatRooms();
   }
 
   function fetchData(searchTerm) {
-     //  Replace this with an actual API call to fetch data based on the search term
-      console.log('Fetching data with search term:', searchTerm);
-      // Example: Call an API with the search term
-      // fetch(`/api/search?term=${searchTerm}`)
-      //   .then(response => response.json())
-      //   .then(data => {
-      //     // Handle the data
-      //   })
-      //   .catch(error => console.error('Error:', error));
-  }
-
-  function sendDataToAPI(data) {
-    // Replace this with an actual API call to send data to the server
-    console.log('Sending data to API:', data);
-     fetch('https://preventivecare-backend.onrender.com/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      })
+    console.log('Fetching data with search term:', searchTerm);
+    // Use the general search API endpoint
+    fetch(`${API_BASE_URL}?search=${encodeURIComponent(searchTerm)}`)
       .then(response => {
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error('Search failed');
         }
         return response.json();
       })
       .then(data => {
-        console.log('Success:', data);
+        // Handle the search results
+        console.log('Search results:', data);
+        displaySearchResults(data);
       })
       .catch(error => {
-        console.error('Error:', error);
+        console.error('Search error:', error);
+        displayErrorMessage('جستجو با خطا مواجه شد.');
       });
   }
 
-    // Function to fetch chat rooms from the API
+  function displaySearchResults(results) {
+    // Implement how you want to display search results
+    // This is just a placeholder implementation
+    if (!DOM.messages) return;
+    
+    const resultsEl = document.createElement('div');
+    resultsEl.className = 'health-chat__search-results';
+    
+    if (results.length === 0) {
+      resultsEl.textContent = 'نتیجه‌ای یافت نشد.';
+    } else {
+      const resultsList = document.createElement('ul');
+      results.forEach(result => {
+        const listItem = document.createElement('li');
+        listItem.textContent = result.title || result.name || 'نتیجه';
+        resultsList.appendChild(listItem);
+      });
+      resultsEl.appendChild(resultsList);
+    }
+    
+    DOM.messages.appendChild(resultsEl);
+    DOM.messages.scrollTop = DOM.messages.scrollHeight;
+  }
+
+  function sendDataToAPI(data) {
+    // Use the chat API endpoint to send a message
+    fetch(`${API_BASE_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Message sent successfully:', data);
+    })
+    .catch(error => {
+      console.error('Error sending message:', error);
+      displayErrorMessage('خطا در ارسال پیام به سرور.');
+    });
+  }
+
+  // Function to fetch chat rooms from the API
   function fetchChatRooms() {
-    fetch('https://preventivecare-backend.onrender.com/api/chat/rooms', {
+    fetch(`${API_BASE_URL}/chat/rooms`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -1466,20 +1703,18 @@ const HealthChat = (function() {
       return response.json();
     })
     .then(rooms => {
-      // Handle the chat rooms data, e.g., update the sidebar
       console.log('Chat Rooms:', rooms);
-      // Assuming you want to display the rooms in the sidebar
       updateSidebarRooms(rooms);
     })
     .catch(error => {
       console.error('Error fetching chat rooms:', error);
-      displayErrorMessage('Failed to load chat rooms.');
+      displayErrorMessage('خطا در بارگذاری اتاق‌های گفتگو.');
     });
   }
 
   // Function to fetch messages for a specific room
   function fetchRoomMessages(room) {
-    fetch(`https://preventivecare-backend.onrender.com/api/chat/rooms/${room}`, {
+    fetch(`${API_BASE_URL}/chat/rooms/${room}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -1492,75 +1727,92 @@ const HealthChat = (function() {
       return response.json();
     })
     .then(messages => {
-      // Handle the messages for the room, e.g., display them in the chat window
       console.log('Messages for room ' + room + ':', messages);
       displayRoomMessages(messages);
     })
     .catch(error => {
       console.error('Error fetching messages for room ' + room + ':', error);
-      displayErrorMessage('Failed to load messages for room: ' + room);
+      displayErrorMessage(`خطا در بارگذاری پیام‌های اتاق ${getRoomTitle(room)}`);
     });
   }
 
   function deleteMessage(messageId) {
-    fetch(`https://preventivecare-backend.onrender.com/api/chat/${messageId}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        }
+    fetch(`${API_BASE_URL}/chat/${messageId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
     })
     .then(response => {
-        if (!response.ok) {
-            throw new Error(`Failed to delete message with ID: ${messageId}`);
-        }
-        console.log(`Message with ID ${messageId} deleted successfully`);
-        // Optionally, refresh the message list for the current room
-        if (currentRoom) {
-            fetchRoomMessages(currentRoom);
-        }
+      if (!response.ok) {
+        throw new Error(`Failed to delete message with ID: ${messageId}`);
+      }
+      console.log(`Message with ID ${messageId} deleted successfully`);
+      // Refresh the message list for the current room
+      if (currentRoom) {
+        fetchRoomMessages(currentRoom);
+      }
     })
     .catch(error => {
-        console.error(`Error deleting message with ID ${messageId}:`, error);
-        displayErrorMessage(`Failed to delete message: ${error.message}`);
+      console.error(`Error deleting message with ID ${messageId}:`, error);
+      displayErrorMessage(`خطا در حذف پیام: ${error.message}`);
     });
-}
-
+  }
 
   // Function to update the sidebar with the chat rooms
   function updateSidebarRooms(rooms) {
-    const sidebar = document.querySelector('.health-chat__sidebar'); // Assuming your sidebar has this class
+    const sidebar = document.querySelector('.health-chat__sidebar-rooms'); // Note: Updated selector to match HTML
     if (!sidebar) {
-      console.error('Sidebar element not found');
+      console.error('Sidebar rooms element not found');
       return;
     }
 
-    // Clear existing rooms
-    sidebar.innerHTML = '';
+    // Keep existing structure since it's synchronized with your HTML
+    // Instead of replacing all rooms, we'll update them if they exist
+    if (rooms && rooms.length) {
+      // Map rooms to the structure used in the existing code
+      const roomMapping = {
+        'heart-health': 'سلامت قلب',
+        'cancer-prevention': 'پیشگیری از سرطان',
+        'diabetes-management': 'مدیریت دیابت',
+        'mental-health': 'سلامت روان',
+        'nutrition': 'تغذیه'
+      };
 
-    rooms.forEach(room => {
-      const roomElement = document.createElement('div');
-      roomElement.classList.add('health-chat__sidebar-room');
-      roomElement.dataset.room = room.name; // Assuming each room object has a 'name' property
-      roomElement.textContent = room.displayName || room.name; // Use displayName if available, otherwise use name
-
-      roomElement.addEventListener('click', () => {
-        handleRoomSelection(room.name);
+      // Update existing rooms if needed
+      rooms.forEach(room => {
+        const roomKey = room.name || '';
+        if (roomMapping[roomKey]) {
+          // Find existing room element
+          const roomElement = sidebar.querySelector(`[data-room="${roomKey}"]`);
+          if (roomElement) {
+            // Update if needed (e.g., if display name changes)
+            roomElement.textContent = room.displayName || roomMapping[roomKey];
+          }
+        }
       });
-
-      sidebar.appendChild(roomElement);
-    });
+    }
   }
 
   // Function to display room messages in the chat window
   function displayRoomMessages(messages) {
     // Clear existing messages
+    if (!DOM.messages) return;
     DOM.messages.innerHTML = '';
 
-    messages.forEach(message => {
-      addMessageToChat(message.user, message.message, message.timestamp);
-    });
+    if (messages && messages.length) {
+      messages.forEach(message => {
+        const time = new Date(message.timestamp).toLocaleTimeString();
+        const isSelf = message.user === currentUser;
+        addMessageToChat(message.user, message.message, time, isSelf);
+      });
+    } else {
+      const welcomeEl = document.createElement('div');
+      welcomeEl.className = 'health-chat__message health-chat__message--system';
+      welcomeEl.textContent = `به اتاق ${getRoomTitle(currentRoom)} خوش آمدید! هیچ پیامی در این اتاق وجود ندارد.`;
+      DOM.messages.appendChild(welcomeEl);
+    }
   }
-
 
   /* Public API */
   return {
