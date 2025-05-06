@@ -1436,6 +1436,9 @@ body {
 
 /* Base Reset */
 /* Health Chat Room BEM CSS with Namespacing */
+
+
+/* Footer Component Styles using BEM methodology */
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap');
 
 .health-chat {
@@ -1626,6 +1629,10 @@ body {
     flex-direction: column;
 }
 
+.health-chat__chat-area--hidden {
+    display: none;
+}
+
 .health-chat__chat-area-header {
     padding: 20px;
     border-bottom: 1px solid #ddd;
@@ -1737,7 +1744,86 @@ body {
     display: none !important;
 }
 
-/* Footer Component Styles using BEM methodology */
+/* Media Queries */
+
+/* For smaller screens, like phones */
+@media (max-width: 767px) {
+    .health-chat {
+        font-size: 14px; /* Reduce overall font size */
+    }
+
+    .health-chat__auth-content {
+        width: 90%; /* Make auth content take up more screen */
+        padding: 15px;
+    }
+
+    .health-chat__auth-image {
+        max-width: 100%; /* Ensure image fits screen */
+    }
+
+    .health-chat__sidebar {
+        width: 100%; /* Sidebar takes full width on small screens */
+        max-height: none;
+    }
+
+    .health-chat__chat {
+        flex-direction: column; /* Stack sidebar and chat area */
+    }
+
+    .health-chat__chat-area {
+        width: 100%; /* Chat area takes full width */
+    }
+
+    .health-chat__sidebar {
+        width: 100%;
+    }
+
+    .health-chat__sidebar-header,
+    .health-chat__sidebar-user {
+        padding: 10px;
+    }
+}
+
+/* For tablets and medium screens */
+@media (min-width: 768px) and (max-width: 991px) {
+    .health-chat__auth-content {
+        width: 70%;
+    }
+
+    .health-chat__sidebar {
+        width: 30%; /* Adjust sidebar width */
+    }
+
+    .health-chat__chat-area {
+        width: 70%; /* Adjust chat area width */
+    }
+}
+
+/* For larger screens */
+@media (min-width: 992px) {
+    .health-chat__auth-content {
+        width: 500px; /* Wider auth content on large screens */
+    }
+
+    .health-chat__sidebar {
+        width: 250px; /* Keep sidebar width on larger screens */
+    }
+
+    .health-chat__chat-area {
+        width: auto; /* Chat area takes remaining space */
+    }
+}
+
+/* Adjustments for very small screens */
+@media (max-width: 480px) {
+    .health-chat__form-input {
+        font-size: 14px; /* Further reduce input font size */
+    }
+
+    .health-chat__form-button {
+        font-size: 14px; /* Further reduce button font size */
+    }
+}
 
 /* Health Exploration Section - BEM Component-Scoped Styling */
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap');
