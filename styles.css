@@ -1461,6 +1461,9 @@ body {
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    display: flex; /* Add flexbox to the content */
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
 }
 
 .health-chat__auth-heading {
@@ -1472,12 +1475,13 @@ body {
 .health-chat__auth-image {
     max-width: 400px;
     border-radius: 8px;
-    margin-top: 20px;
+    margin-bottom: 20px; /* Add margin between image and form */
 }
 
 /* Form Styles */
 .health-chat__form {
     display: block;
+    width: 100%; /* Ensure form takes full width of its container */
 }
 
 .health-chat__form--hidden {
@@ -1743,9 +1747,6 @@ body {
         width: 90%; /* Make auth content wider on small screens */
     }
 
-    .health-chat__auth-image {
-        max-width: 100%; /* adjust images to fit screen */
-    }
 
     .health-chat__chat {
         flex-direction: column; /* Stack sidebar and chat area vertically */
@@ -1782,6 +1783,26 @@ body {
         margin-top: 5px; /* Add spacing between title and users */
     }
 }
+
+/* Modified CSS to position the image above the form */
+.health-chat__auth-content {
+    width: 400px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
+}
+
+.health-chat__auth-image {
+    max-width: 400px;
+    border-radius: 8px;
+    margin-bottom: 20px; /* Add margin between image and form */
+    order: -1; /* Moves the image to the top */
+}
+
 
 /* Footer Component Styles using BEM methodology */
 
