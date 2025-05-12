@@ -1,6 +1,6 @@
 // Configuration for API endpoints
 const API_CONFIG = {
-  BASE_URL: 'https://your-app-name.onrender.com',
+  BASE_URL: 'https://https://preventivecare-backend.onrender.com',
   API_PREFIX: '/api'
 };
 // Rest of your main.js code follows...
