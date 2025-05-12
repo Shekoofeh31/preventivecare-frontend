@@ -6,6 +6,12 @@ const searchButton = document.querySelector('.ph-search__button');
 const heroTitle = document.querySelector('.ph-hero__title');
 const heroSubtitle = document.querySelector('.ph-hero__subtitle');
 
+// API Configuration
+const API_CONFIG = {
+  BASE_URL: 'https://your-app-name.onrender.com', // Replace with your actual Render URL
+  API_PREFIX: '/api'
+};
+
 // Language Content
 const content = {
   persian: {
@@ -13,16 +19,51 @@ const content = {
     subtitle: 'راهکارهای پیشگیری و سلامت جامع',
     searchPlaceholder: 'جستجو برای موضوعات سلامت، نکات پیشگیری...',
     searchButton: 'جستجو',
-    direction: 'rtl'
+    direction: 'rtl',
+    searchingMessage: 'در حال جستجو...',
+    searchErrorMessage: 'خطا در جستجو. لطفا دوباره تلاش کنید.'
   },
   english: {
     title: 'Health Pioneers',
     subtitle: 'Comprehensive Prevention and Health Solutions',
     searchPlaceholder: 'Search for health topics, prevention tips...',
     searchButton: 'Search',
-    direction: 'ltr'
+    direction: 'ltr',
+    searchingMessage: 'Searching...',
+    searchErrorMessage: 'Error searching. Please try again.'
   }
 };
+
+// API Call Function
+async function apiCall(endpoint, method = 'GET', data = null) {
+  const url = `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}${endpoint}`;
+  
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json'
+      // Add authorization headers if needed
+    },
+    credentials: 'include'  // Important for cookies if using authentication
+  };
+  
+  if (data && (method === 'POST' || method === 'PUT')) {
+    options.body = JSON.stringify(data);
+  }
+  
+  try {
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('API request failed:', error);
+    throw error;
+  }
+}
 
 // Language Switcher Functionality
 function setLanguage(lang) {
@@ -31,11 +72,9 @@ function setLanguage(lang) {
   heroSubtitle.textContent = content[lang].subtitle;
   searchInput.placeholder = content[lang].searchPlaceholder;
   searchButton.textContent = content[lang].searchButton;
-
   // Update document direction
   document.documentElement.dir = content[lang].direction;
   document.documentElement.lang = lang === 'persian' ? 'fa' : 'en';
-
   // Update active state for buttons
   if (lang === 'persian') {
     persianBtn.classList.add('ph-language-switcher__button--active');
@@ -44,7 +83,6 @@ function setLanguage(lang) {
     englishBtn.classList.add('ph-language-switcher__button--active');
     persianBtn.classList.remove('ph-language-switcher__button--active');
   }
-
   // Save language preference to localStorage
   localStorage.setItem('preferredLanguage', lang);
 }
@@ -54,23 +92,41 @@ persianBtn.addEventListener('click', () => setLanguage('persian'));
 englishBtn.addEventListener('click', () => setLanguage('english'));
 
 // Search Functionality
-function performSearch() {
+async function performSearch() {
   const searchTerm = searchInput.value.trim();
   if (searchTerm !== '') {
-    // In a real implementation, you might redirect to a search results page
-    // window.location.href = `/search?q=${encodeURIComponent(searchTerm)}`;
-
-    // For demonstration purposes, we'll just log the search term
-    console.log(`Searching for: ${searchTerm}`);
-
-    // Here you would typically send the search term to your backend
-    // For now, just alert the user
     const currentLang = localStorage.getItem('preferredLanguage') || 'persian';
-    const alertMessage = currentLang === 'persian'
-      ? `جستجو برای: ${searchTerm}`
-      : `Searching for: ${searchTerm}`;
-
-    alert(alertMessage);
+    
+    try {
+      // Display searching message (optional)
+      const originalButtonText = searchButton.textContent;
+      searchButton.textContent = content[currentLang].searchingMessage;
+      searchButton.disabled = true;
+      
+      // Call search API with query parameter
+      const searchResults = await apiCall(`/search/?q=${encodeURIComponent(searchTerm)}`);
+      
+      console.log('Search results:', searchResults);
+      
+      // Here you would handle the search results
+      // For example, redirect to a search results page with the data
+      // window.location.href = `/search-results.html?q=${encodeURIComponent(searchTerm)}`;
+      
+      // For demonstration purposes, still show an alert
+      const alertMessage = currentLang === 'persian'
+        ? `جستجو برای: ${searchTerm} - ${searchResults.length} نتیجه یافت شد`
+        : `Search for: ${searchTerm} - ${searchResults.length} results found`;
+      alert(alertMessage);
+      
+    } catch (error) {
+      console.error('Search failed:', error);
+      // Show error message
+      alert(content[currentLang].searchErrorMessage);
+    } finally {
+      // Reset button state
+      searchButton.textContent = content[currentLang].searchButton;
+      searchButton.disabled = false;
+    }
   }
 }
 
@@ -82,28 +138,177 @@ searchInput.addEventListener('keypress', (e) => {
   }
 });
 
+// Add autocomplete functionality
+searchInput.addEventListener('input', async () => {
+  const searchTerm = searchInput.value.trim();
+  
+  // Only call autocomplete API if there's something to search
+  if (searchTerm.length >= 2) {
+    try {
+      const suggestions = await apiCall(`/search/autocomplete?q=${encodeURIComponent(searchTerm)}`);
+      
+      // Here you would display the autocomplete suggestions
+      // This would typically involve creating and updating a dropdown
+      console.log('Autocomplete suggestions:', suggestions);
+      
+      // Implementation of showing suggestions would go here
+      // For example:
+      // showAutocompleteSuggestions(suggestions);
+    } catch (error) {
+      console.error('Autocomplete failed:', error);
+    }
+  }
+});
+
 // Initialize language on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Check for previously saved language preference
   const savedLanguage = localStorage.getItem('preferredLanguage') || 'persian';
   setLanguage(savedLanguage);
-
   // Add active class to initial language button
   if (savedLanguage === 'persian') {
     persianBtn.classList.add('ph-language-switcher__button--active');
   } else {
     englishBtn.classList.add('ph-language-switcher__button--active');
   }
+  
+  // Fetch popular searches on page load
+  try {
+    const popularSearches = await apiCall('/search/popular');
+    console.log('Popular searches:', popularSearches);
+    // Here you would display popular searches if your UI has a section for this
+    // For example:
+    // displayPopularSearches(popularSearches);
+  } catch (error) {
+    console.error('Failed to fetch popular searches:', error);
+  }
 });
- /**
+/**
  * preventive-features
  * Using BEM naming convention and component-scoped structure
  */
 document.addEventListener('DOMContentLoaded', function() {
+  // API URLs
+  const API_BASE_URL = '/api/preventive-featured';
+  
+  // API Functions
+  const api = {
+    getArticles: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/articles`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching articles:', error);
+        return [];
+      }
+    },
+    
+    getArticle: async (articleId) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/articles/${articleId}`);
+        return await response.json();
+      } catch (error) {
+        console.error(`Error fetching article ${articleId}:`, error);
+        return null;
+      }
+    },
+    
+    getFeaturedArticles: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/featured-articles`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching featured articles:', error);
+        return [];
+      }
+    },
+    
+    getResources: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/resources`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching resources:', error);
+        return [];
+      }
+    },
+    
+    getResource: async (resourceId) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/resources/${resourceId}`);
+        return await response.json();
+      } catch (error) {
+        console.error(`Error fetching resource ${resourceId}:`, error);
+        return null;
+      }
+    },
+    
+    getCategories: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+      }
+    },
+    
+    getCategory: async (categoryId) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`);
+        return await response.json();
+      } catch (error) {
+        console.error(`Error fetching category ${categoryId}:`, error);
+        return null;
+      }
+    },
+    
+    getSubcategories: async (categoryId) => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories/${categoryId}/subcategories`);
+        return await response.json();
+      } catch (error) {
+        console.error(`Error fetching subcategories for category ${categoryId}:`, error);
+        return [];
+      }
+    },
+    
+    getHealthTopics: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/health-topics`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching health topics:', error);
+        return [];
+      }
+    },
+    
+    getHealthCalendar: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/health-calendar`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching health calendar:', error);
+        return [];
+      }
+    },
+    
+    getPreventiveTips: async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/preventive-tips`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching preventive tips:', error);
+        return [];
+      }
+    }
+  };
+
+  // Original Modal Functionality
   const showModalButtons = document.querySelectorAll('.js-show-modal');
   const closeModalButtons = document.querySelectorAll('.js-close-modal');
   const modals = document.querySelectorAll('.js-modal');
-
+  
   showModalButtons.forEach(button => {
     button.addEventListener('click', function(event) {
       event.preventDefault();
@@ -116,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.style.overflow = 'hidden'; // از اسکرول کردن صفحه جلوگیری می‌کنیم
     });
   });
-
+  
   closeModalButtons.forEach(button => {
     button.addEventListener('click', function() {
       const modal = this.closest('.js-modal');
@@ -124,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.style.overflow = 'auto'; // اجازه اسکرول کردن صفحه را می‌دهیم
     });
   });
-
+  
   // بستن مدال با کلیک خارج از مدال
   document.addEventListener('click', function(event) {
     if (event.target === document.querySelector('.js-modal.is-active')) {
@@ -132,16 +337,45 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.style.overflow = 'auto';
     }
   });
-
-    // بستن مدال با زدن کلید Escape
+  
+  // بستن مدال با زدن کلید Escape
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape' && document.querySelector('.js-modal.is-active')) {
       document.querySelector('.js-modal.is-active').classList.remove('is-active');
       document.body.style.overflow = 'auto';
     }
   });
-});
 
+  // Function to load featured articles
+  const loadFeaturedArticles = async () => {
+    const featuredArticlesContainer = document.querySelector('.preventive-featured__articles');
+    if (!featuredArticlesContainer) return;
+    
+    try {
+      const featuredArticles = await api.getFeaturedArticles();
+      if (featuredArticles && featuredArticles.length > 0) {
+        renderFeaturedArticles(featuredArticles, featuredArticlesContainer);
+      }
+    } catch (error) {
+      console.error('Error loading featured articles:', error);
+    }
+  };
+
+  // Function to render featured articles
+  const renderFeaturedArticles = (articles, container) => {
+    // Add your rendering logic here based on your HTML structure
+    // This is just a placeholder and should be adjusted to match your BEM structure
+  };
+
+  // Initialize API data loading
+  const initializeData = async () => {
+    await loadFeaturedArticles();
+    // Add other initialization functions as needed
+  };
+
+  // Call initialization function
+  initializeData();
+});
 /**
  * Health Risk Assessment Application
  * Using BEM naming convention and component-scoped structure
@@ -167,6 +401,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const sectionOrder = ['demographic', 'medical-history', 'lifestyle', 'chronic-risks', 'acute-risks'];
     let currentSection = 0;
     
+    // API endpoints
+    const API_ENDPOINTS = {
+        ASSESS: '/api/risk-assessment/assess',
+        GET_FACTORS: '/api/risk-assessment/factors',
+        GET_RECOMMENDATIONS: '/api/risk-assessment/recommendations/',
+        SAVE_ASSESSMENT: '/api/risk-assessment/save-assessment'
+    };
+    
     // Event Listeners
     startAssessmentBtn.addEventListener('click', startAssessment);
     tabButtons.forEach(button => button.addEventListener('click', switchTab));
@@ -176,6 +418,9 @@ document.addEventListener('DOMContentLoaded', function() {
     printResultsBtn.addEventListener('click', printResults);
     emailResultsBtn.addEventListener('click', emailResults);
     restartBtn.addEventListener('click', restartAssessment);
+    
+    // Fetch risk factors when the page loads
+    fetchRiskFactors();
     
     // Functions
     function startAssessment() {
@@ -294,29 +539,67 @@ document.addEventListener('DOMContentLoaded', function() {
         return valid;
     }
     
-    function submitForm(e) {
+    async function submitForm(e) {
         e.preventDefault();
         
         // Validate current section before submitting
         if (validateCurrentSection()) {
             // Collect form data
             const formData = new FormData(form);
+            const formDataObj = Object.fromEntries(formData.entries());
             
-            // Calculate risk scores
-            const riskScores = calculateRiskScores(formData);
+            // Handle multiple select values
+            for (const key of formData.keys()) {
+                if (formData.getAll(key).length > 1) {
+                    formDataObj[key] = formData.getAll(key);
+                }
+            }
             
-            // Update risk visualization in results
-            updateRiskVisualization(riskScores);
-            
-            // Generate recommendations
-            generateRecommendations(riskScores, formData);
-            
-            // Show results section
-            mainContainer.querySelector('.assessment-form').style.display = 'none';
-            resultsSection.style.display = 'block';
+            try {
+                // Use the API to calculate risk scores
+                const response = await fetch(API_ENDPOINTS.ASSESS, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formDataObj)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to assess risk');
+                }
+                
+                const riskScores = await response.json();
+                
+                // Update risk visualization in results
+                updateRiskVisualization(riskScores);
+                
+                // Generate recommendations based on API results
+                await fetchRecommendations(riskScores);
+                
+                // Save assessment results
+                saveAssessment(formDataObj, riskScores);
+                
+                // Show results section
+                mainContainer.querySelector('.assessment-form').style.display = 'none';
+                resultsSection.style.display = 'block';
+            } catch (error) {
+                console.error('Error during form submission:', error);
+                alert('خطا در ارزیابی ریسک. لطفاً دوباره تلاش کنید.');
+                
+                // Fallback to client-side calculation if API fails
+                const fallbackScores = calculateRiskScores(formData);
+                updateRiskVisualization(fallbackScores);
+                generateRecommendations(fallbackScores, formData);
+                
+                // Show results section with fallback data
+                mainContainer.querySelector('.assessment-form').style.display = 'none';
+                resultsSection.style.display = 'block';
+            }
         }
     }
     
+    // Fallback risk calculation function (unchanged)
     function calculateRiskScores(formData) {
         // Initialize risk scores
         const scores = {
@@ -453,6 +736,64 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // API function to fetch risk factors
+    async function fetchRiskFactors() {
+        try {
+            const response = await fetch(API_ENDPOINTS.GET_FACTORS);
+            if (!response.ok) {
+                throw new Error('Failed to fetch risk factors');
+            }
+            
+            const factors = await response.json();
+            
+            // This function would update the UI based on returned risk factors
+            // For example, it could populate dropdowns or checkboxes
+            // Implementation depends on your specific UI structure
+            // updateRiskFactorsUI(factors);
+            
+        } catch (error) {
+            console.error('Error fetching risk factors:', error);
+            // Fallback to existing UI structure
+        }
+    }
+    
+    // API function to fetch recommendations
+    async function fetchRecommendations(riskScores) {
+        try {
+            const recommendationsList = document.getElementById('recommendations-list');
+            recommendationsList.innerHTML = '';
+            
+            // Determine highest risk factor
+            const highestRisk = Object.entries(riskScores).reduce(
+                (max, [key, value]) => value > max.value ? {key, value} : max, 
+                {key: '', value: -1}
+            );
+            
+            // Fetch recommendations for highest risk factor
+            const response = await fetch(API_ENDPOINTS.GET_RECOMMENDATIONS + highestRisk.key);
+            if (!response.ok) {
+                throw new Error('Failed to fetch recommendations');
+            }
+            
+            const recommendations = await response.json();
+            
+            // Update recommendations list
+            recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.className = 'recommendations__item';
+                li.textContent = rec;
+                recommendationsList.appendChild(li);
+            });
+            
+        } catch (error) {
+            console.error('Error fetching recommendations:', error);
+            // Fallback to client-side recommendation generation
+            const formData = new FormData(form);
+            generateRecommendations(riskScores, formData);
+        }
+    }
+    
+    // Fallback recommendations function (unchanged)
     function generateRecommendations(scores, formData) {
         const recommendations = [];
         
@@ -519,6 +860,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // API function to save assessment results
+    async function saveAssessment(formData, riskScores) {
+        try {
+            const assessmentData = {
+                user_data: formData,
+                risk_scores: riskScores,
+                timestamp: new Date().toISOString()
+            };
+            
+            const response = await fetch(API_ENDPOINTS.SAVE_ASSESSMENT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(assessmentData)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to save assessment');
+            }
+            
+            // Assessment saved successfully
+            console.log('Assessment saved successfully');
+            
+        } catch (error) {
+            console.error('Error saving assessment:', error);
+            // Continue without saving - this doesn't affect the user experience
+        }
+    }
+    
     function printResults() {
         window.print();
     }
@@ -548,7 +919,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateProgress();
     }
 });
-
 /**
  * Symptom Checker Application
  * Uses BEM structure and namespacing
@@ -575,6 +945,9 @@ class SymptomChecker {
         this.symptomInput = document.getElementById('symptom');
 
         this.bindEvents();
+        
+        // Base API URL
+        this.apiBaseUrl = 'https://preventivecare-backend.onrender.com';
     }
 
     bindEvents() {
@@ -634,47 +1007,105 @@ class SymptomChecker {
         this.showLoadingState();
 
         try {
-            const response = await this.checkSymptoms(age, gender, symptom, duration);
-
-            if (response) {
-                this.aiResponseDiv.textContent = response; // Assuming response is the diagnosis
+            // First analyze the symptoms with the new /api/symptom-checker/analyze endpoint
+            const analysisResult = await this.analyzeSymptoms(age, gender, symptom, duration);
+            
+            if (!analysisResult) {
+                throw new Error('تحلیل علائم با خطا مواجه شد.');
+            }
+            
+            // Then check/verify the analysis with the test endpoint
+            const testResult = await this.testAnalysis(analysisResult.analysisId || analysisResult.id);
+            
+            if (testResult) {
+                this.aiResponseDiv.textContent = testResult.diagnosis || testResult.result;
                 this.resultsSection.classList.remove('symptom-checker__hidden');
             } else {
                 this.showError('پاسخی از سرور دریافت نشد.');
             }
-
         } catch (error) {
             console.error('Error:', error);
-            this.showError('خطا در برقراری ارتباط با سرور.');
+            this.showError(error.message || 'خطا در برقراری ارتباط با سرور.');
         } finally {
             this.hideLoadingState();
         }
     }
 
-    async checkSymptoms(age, gender, symptoms, duration) {
+    // New method for the analyze endpoint
+    async analyzeSymptoms(age, gender, symptoms, duration) {
         try {
-            const response = await fetch('https://preventivecare-backend.onrender.com/api/symptom-checker/check', {  // Replace with your actual URL
+            const response = await fetch(`${this.apiBaseUrl}/api/symptom-checker/analyze`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ age, gender, symptoms, duration }) // Send data as JSON
+                body: JSON.stringify({ age, gender, symptoms, duration })
             });
 
             if (!response.ok) {
-                const errorData = await response.json(); // Parse error response
+                const errorData = await response.json();
+                console.error('Analysis Error:', errorData);
+                throw new Error(errorData.message || 'خطا در تحلیل علائم.');
+            }
+
+            const data = await response.json();
+            console.log('Analysis Result:', data);
+            return data;
+        } catch (error) {
+            console.error('Analysis Fetch error:', error);
+            throw error;
+        }
+    }
+
+    // New method for the test endpoint
+    async testAnalysis(analysisId) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/symptom-checker/test`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ analysisId })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('Test Error:', errorData);
+                throw new Error(errorData.message || 'خطا در بررسی نتایج.');
+            }
+
+            const data = await response.json();
+            console.log('Test Result:', data);
+            return data;
+        } catch (error) {
+            console.error('Test Fetch error:', error);
+            throw error;
+        }
+    }
+
+    // Keep the original method for backward compatibility
+    async checkSymptoms(age, gender, symptoms, duration) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/api/symptom-checker/check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ age, gender, symptoms, duration })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
                 console.error('Error:', errorData);
-                this.showError(`Error: ${errorData.message || 'An error occurred.'}`);  // Display error
-                return null;
+                throw new Error(errorData.message || 'An error occurred.');
             }
 
             const data = await response.json();
             console.log(data);
-            return data.diagnosis;  // Or however you want to display it
+            return data.diagnosis;
         } catch (error) {
             console.error('Fetch error:', error);
-            this.showError('An unexpected error occurred.');
-            return null;
+            throw error;
         }
     }
 
@@ -693,9 +1124,8 @@ class SymptomChecker {
 document.addEventListener('DOMContentLoaded', () => {
     new SymptomChecker();
 });
-
 // Health Exploration Component JavaScript (Scoped to "he" namespace)
-
+// Function to fetch articles and populate the cards
 // Add event listeners to all "مشاهده مقاله" buttons
 document.querySelectorAll('.he-card__btn').forEach(button => {
   button.addEventListener('click', event => {
@@ -704,19 +1134,61 @@ document.querySelectorAll('.he-card__btn').forEach(button => {
     // Extract the details from the corresponding card
     const paperTitle = card.querySelector('.he-paper__title').textContent;
     const paperAbstract = card.querySelector('.he-paper__abstract').innerHTML;
-
+    // Extract paper ID from the card's data attribute (assuming it exists)
+    const paperId = card.dataset.paperId;
+    
     // Populate the modal content with the paper details
     const modal = document.querySelector('.he-modal');
     modal.querySelector('.he-modal__title').textContent = paperTitle;
     modal.querySelector('.he-modal__body').innerHTML = paperAbstract;
-
+    
+    // Update download button with correct paper ID
+    const downloadBtn = modal.querySelector('.he-modal__download-btn');
+    if (downloadBtn) {
+      downloadBtn.dataset.paperId = paperId;
+    }
+    
     // Show the modal by adding the active class
     modal.classList.add('he-modal--active');
     document.body.classList.add('he-modal-open');
   });
 });
 
-// Add event listener to the modal close button
+// Add event listener for download button
+document.querySelectorAll('.he-modal__download-btn').forEach(button => {
+  button.addEventListener('click', event => {
+    const paperId = event.target.dataset.paperId;
+    if (paperId) {
+      // Call the API to download the paper
+      fetch(`/api/health-exploration/papers/${paperId}/download`, {
+        method: 'GET',
+      })
+      .then(response => {
+        if (response.ok) {
+          return response.blob();
+        }
+        throw new Error('Network response was not ok');
+      })
+      .then(blob => {
+        // Create a link and trigger download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `paper-${paperId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(error => {
+        console.error('Error downloading paper:', error);
+        alert('Failed to download paper. Please try again later.');
+      });
+    }
+  });
+});
+
+// Original modal close functionality
 document.querySelector('.he-modal__close').addEventListener('click', () => {
   const modal = document.querySelector('.he-modal');
   modal.classList.remove('he-modal--active'); // Hide the modal
@@ -737,11 +1209,11 @@ document.querySelector('.he-modal').addEventListener('click', event => {
     document.body.classList.remove('he-modal-open');
   }
 });
+
 /* Global Variables */
 let currentUser = null;
 let currentRoom = null;
 let socket = null;
-
 /* Health Chat Module with Namespacing */
 const HealthChat = (function() {
   /* Private Variables */
@@ -750,6 +1222,7 @@ const HealthChat = (function() {
   let socket = null;
   let reconnectionAttempts = 0;
   const maxReconnectionAttempts = 5;
+  const API_BASE_URL = '/api/health-chat';
 
   /* DOM Elements Cache */
   let DOM = {};
@@ -820,8 +1293,8 @@ const HealthChat = (function() {
         const password = DOM.password.value.trim();
 
         if (validateLogin(username, password)) {
-          currentUser = username;
-          showChatInterface(username);
+          // Call API for login
+          loginUser(username, password);
         } else {
           alert('نام کاربری یا رمز عبور نامعتبر است!');
         }
@@ -837,8 +1310,8 @@ const HealthChat = (function() {
         const confirmPassword = DOM.regConfirmPassword.value.trim();
 
         if (validateRegistration(username, password, confirmPassword)) {
-          alert('ثبت نام با موفقیت انجام شد! لطفا وارد شوید.');
-          DOM.showLoginLink.click();
+          // Call API for registration
+          registerUser(username, password);
         } else {
           alert('ثبت نام ناموفق بود! لطفا ورودی های خود را بررسی کنید.');
         }
@@ -848,11 +1321,8 @@ const HealthChat = (function() {
     // Logout
     if (DOM.logoutBtn) {
       DOM.logoutBtn.addEventListener('click', () => {
-        currentUser = null;
-        currentRoom = null;
-        disconnectSocket();
-        DOM.chatContainer.classList.add('health-chat__chat--hidden');
-        DOM.authContainer.classList.remove('hidden');
+        // Call API for logout
+        logoutUser();
       });
     }
 
@@ -881,6 +1351,117 @@ const HealthChat = (function() {
           sendCurrentMessage();
         }
       });
+    }
+  }
+
+  /* API Functions */
+  async function fetchAPI(endpoint, method = 'GET', data = null) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const options = {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    if (data && (method === 'POST' || method === 'PUT')) {
+      options.body = JSON.stringify(data);
+    }
+
+    try {
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `API Error: ${response.status}`);
+      }
+      
+      // For endpoints that might return no content
+      if (response.status === 204) {
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  }
+
+  async function loginUser(username, password) {
+    try {
+      await fetchAPI('/login', 'POST', { username, password });
+      currentUser = username;
+      showChatInterface(username);
+    } catch (error) {
+      alert('ورود ناموفق بود! نام کاربری یا رمز عبور اشتباه است.');
+      console.error('Login error:', error);
+    }
+  }
+
+  async function registerUser(username, password) {
+    try {
+      await fetchAPI('/register', 'POST', { username, password });
+      alert('ثبت نام با موفقیت انجام شد! لطفا وارد شوید.');
+      DOM.showLoginLink.click();
+    } catch (error) {
+      alert('ثبت نام ناموفق بود! لطفا ورودی های خود را بررسی کنید.');
+      console.error('Registration error:', error);
+    }
+  }
+
+  async function logoutUser() {
+    try {
+      await fetchAPI('/logout', 'POST');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // Continue with original logout logic
+    currentUser = null;
+    currentRoom = null;
+    disconnectSocket();
+    DOM.chatContainer.classList.add('health-chat__chat--hidden');
+    DOM.authContainer.classList.remove('hidden');
+  }
+
+  async function fetchRooms() {
+    try {
+      return await fetchAPI('/rooms');
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      return [];
+    }
+  }
+
+  async function getRoomData(roomId) {
+    try {
+      return await fetchAPI(`/rooms/${roomId}`);
+    } catch (error) {
+      console.error('Error getting room data:', error);
+      return null;
+    }
+  }
+
+  async function fetchMessages(roomId) {
+    try {
+      return await fetchAPI(`/rooms/${roomId}/messages`);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      return [];
+    }
+  }
+
+  async function sendMessageAPI(roomId, message) {
+    try {
+      await fetchAPI(`/rooms/${roomId}/messages`, 'POST', { 
+        message,
+        time: new Date().toLocaleTimeString()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      return false;
     }
   }
 
@@ -946,6 +1527,15 @@ const HealthChat = (function() {
     if (DOM.messages) {
       DOM.messages.innerHTML = '';
     }
+    
+    // Load messages from API
+    fetchMessages(roomName).then(messages => {
+      if (messages && messages.length) {
+        messages.forEach(msg => {
+          addMessageToChat(msg.username, msg.message, msg.time, msg.username === currentUser);
+        });
+      }
+    });
   }
 
   /* Socket.IO Initialization */
@@ -1024,7 +1614,10 @@ const HealthChat = (function() {
   function sendMessage(message) {
     const time = new Date().toLocaleTimeString();
 
-    // Check socket connection before sending
+    // Send message through API
+    sendMessageAPI(currentRoom, message);
+
+    // Also send through socket if connected
     if (socket && socket.connected) {
       socket.emit('chatMessage', { username: currentUser, message, time });
       addMessageToChat(currentUser, message, time, true);
@@ -1034,15 +1627,13 @@ const HealthChat = (function() {
       setTimeout(() => {
         if (socket && socket.connected) {
           socket.emit('chatMessage', { username: currentUser, message, time });
-          addMessageToChat(currentUser, message, time, true);
-        } else {
-          displayErrorMessage('مشکل در اتصال به سرور. پیام ارسال نشد.');
         }
+        addMessageToChat(currentUser, message, time, true);
       }, 1000);
     }
   }
 
-    function addMessageToChat(username, message, time, isSelf = false) {
+  function addMessageToChat(username, message, time, isSelf = false) {
     if (!DOM.messages) return;
 
     const messageEl = document.createElement('div');
@@ -1093,7 +1684,13 @@ const HealthChat = (function() {
   }
 
   function joinRoom(roomName) {
-     if (socket && socket.connected) {
+    // First try to join via API
+    getRoomData(roomName).catch(error => {
+      console.error("Error joining room via API:", error);
+    });
+
+    // Then use socket as before
+    if (socket && socket.connected) {
       socket.emit('joinRoom', { username: currentUser, room: roomName });
     } else {
       console.warn('Socket not connected. Attempting to reconnect before joining room.');
@@ -1117,7 +1714,6 @@ const HealthChat = (function() {
 
 // Initialize the module when the DOM is ready
 document.addEventListener('DOMContentLoaded', HealthChat.init);
-
 /* Footer */
 document.addEventListener('DOMContentLoaded', function() {
     // Define the content for each section
