@@ -1,3 +1,9 @@
+// Configuration for API endpoints
+const API_CONFIG = {
+  BASE_URL: 'https://your-app-name.onrender.com',
+  API_PREFIX: '/api'
+};
+// Rest of your main.js code follows...
 // DOM Elements
 const persianBtn = document.getElementById('persian-btn');
 const englishBtn = document.getElementById('english-btn');
