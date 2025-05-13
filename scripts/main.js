@@ -1,4 +1,3 @@
-// Rest of your main.js code follows...
 // DOM Elements
 const persianBtn = document.getElementById('persian-btn');
 const englishBtn = document.getElementById('english-btn');
@@ -7,11 +6,37 @@ const searchButton = document.querySelector('.ph-search__button');
 const heroTitle = document.querySelector('.ph-hero__title');
 const heroSubtitle = document.querySelector('.ph-hero__subtitle');
 
-// API Configuration
-const API_CONFIG = {
-  BASE_URL: 'https://your-app-name.onrender.com', // Replace with your actual Render URL
-  API_PREFIX: '/api'
-};
+// Helper function for API calls
+function apiCall(endpoint, method = 'GET', data = null) {
+  const BASE_URL = 'https://preventivecare-backend.onrender.com';
+  const API_PREFIX = '/api';
+  const url = `${BASE_URL}${API_PREFIX}${endpoint}`;
+  
+  const options = {
+    method,
+    headers: {
+      'Content-Type': 'application/json'
+      // Add authorization headers if needed
+    },
+    credentials: 'include'  // Important for cookies if using authentication
+  };
+  
+  if (data && (method === 'POST' || method === 'PUT')) {
+    options.body = JSON.stringify(data);
+  }
+  
+  return fetch(url, options)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      return response.json();
+    })
+    .catch(error => {
+      console.error('API request failed:', error);
+      throw error;
+    });
+}
 
 // Language Content
 const content = {
@@ -34,37 +59,6 @@ const content = {
     searchErrorMessage: 'Error searching. Please try again.'
   }
 };
-
-// API Call Function
-async function apiCall(endpoint, method = 'GET', data = null) {
-  const url = `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}${endpoint}`;
-  
-  const options = {
-    method,
-    headers: {
-      'Content-Type': 'application/json'
-      // Add authorization headers if needed
-    },
-    credentials: 'include'  // Important for cookies if using authentication
-  };
-  
-  if (data && (method === 'POST' || method === 'PUT')) {
-    options.body = JSON.stringify(data);
-  }
-  
-  try {
-    const response = await fetch(url, options);
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('API request failed:', error);
-    throw error;
-  }
-}
 
 // Language Switcher Functionality
 function setLanguage(lang) {
@@ -93,41 +87,41 @@ persianBtn.addEventListener('click', () => setLanguage('persian'));
 englishBtn.addEventListener('click', () => setLanguage('english'));
 
 // Search Functionality
-async function performSearch() {
+function performSearch() {
   const searchTerm = searchInput.value.trim();
   if (searchTerm !== '') {
     const currentLang = localStorage.getItem('preferredLanguage') || 'persian';
     
-    try {
-      // Display searching message (optional)
-      const originalButtonText = searchButton.textContent;
-      searchButton.textContent = content[currentLang].searchingMessage;
-      searchButton.disabled = true;
-      
-      // Call search API with query parameter
-      const searchResults = await apiCall(`/search/?q=${encodeURIComponent(searchTerm)}`);
-      
-      console.log('Search results:', searchResults);
-      
-      // Here you would handle the search results
-      // For example, redirect to a search results page with the data
-      // window.location.href = `/search-results.html?q=${encodeURIComponent(searchTerm)}`;
-      
-      // For demonstration purposes, still show an alert
-      const alertMessage = currentLang === 'persian'
-        ? `جستجو برای: ${searchTerm} - ${searchResults.length} نتیجه یافت شد`
-        : `Search for: ${searchTerm} - ${searchResults.length} results found`;
-      alert(alertMessage);
-      
-    } catch (error) {
-      console.error('Search failed:', error);
-      // Show error message
-      alert(content[currentLang].searchErrorMessage);
-    } finally {
-      // Reset button state
-      searchButton.textContent = content[currentLang].searchButton;
-      searchButton.disabled = false;
-    }
+    // Display searching message
+    const originalButtonText = searchButton.textContent;
+    searchButton.textContent = content[currentLang].searchingMessage;
+    searchButton.disabled = true;
+    
+    // Call search API with query parameter
+    apiCall(`/search/?q=${encodeURIComponent(searchTerm)}`)
+      .then(searchResults => {
+        console.log('Search results:', searchResults);
+        
+        // Here you would handle the search results
+        // For example, redirect to a search results page with the data
+        // window.location.href = `/search-results.html?q=${encodeURIComponent(searchTerm)}`;
+        
+        // For demonstration purposes, still show an alert
+        const alertMessage = currentLang === 'persian'
+          ? `جستجو برای: ${searchTerm} - ${searchResults.length} نتیجه یافت شد`
+          : `Search for: ${searchTerm} - ${searchResults.length} results found`;
+        alert(alertMessage);
+      })
+      .catch(error => {
+        console.error('Search failed:', error);
+        // Show error message
+        alert(content[currentLang].searchErrorMessage);
+      })
+      .finally(() => {
+        // Reset button state
+        searchButton.textContent = content[currentLang].searchButton;
+        searchButton.disabled = false;
+      });
   }
 }
 
@@ -140,29 +134,29 @@ searchInput.addEventListener('keypress', (e) => {
 });
 
 // Add autocomplete functionality
-searchInput.addEventListener('input', async () => {
+searchInput.addEventListener('input', () => {
   const searchTerm = searchInput.value.trim();
   
   // Only call autocomplete API if there's something to search
   if (searchTerm.length >= 2) {
-    try {
-      const suggestions = await apiCall(`/search/autocomplete?q=${encodeURIComponent(searchTerm)}`);
-      
-      // Here you would display the autocomplete suggestions
-      // This would typically involve creating and updating a dropdown
-      console.log('Autocomplete suggestions:', suggestions);
-      
-      // Implementation of showing suggestions would go here
-      // For example:
-      // showAutocompleteSuggestions(suggestions);
-    } catch (error) {
-      console.error('Autocomplete failed:', error);
-    }
+    apiCall(`/search/autocomplete?q=${encodeURIComponent(searchTerm)}`)
+      .then(suggestions => {
+        // Here you would display the autocomplete suggestions
+        // This would typically involve creating and updating a dropdown
+        console.log('Autocomplete suggestions:', suggestions);
+        
+        // Implementation of showing suggestions would go here
+        // For example:
+        // showAutocompleteSuggestions(suggestions);
+      })
+      .catch(error => {
+        console.error('Autocomplete failed:', error);
+      });
   }
 });
 
 // Initialize language on page load
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   // Check for previously saved language preference
   const savedLanguage = localStorage.getItem('preferredLanguage') || 'persian';
   setLanguage(savedLanguage);
@@ -174,134 +168,144 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   
   // Fetch popular searches on page load
-  try {
-    const popularSearches = await apiCall('/search/popular');
-    console.log('Popular searches:', popularSearches);
-    // Here you would display popular searches if your UI has a section for this
-    // For example:
-    // displayPopularSearches(popularSearches);
-  } catch (error) {
-    console.error('Failed to fetch popular searches:', error);
-  }
+  apiCall('/search/popular')
+    .then(popularSearches => {
+      console.log('Popular searches:', popularSearches);
+      // Here you would display popular searches if your UI has a section for this
+      // For example:
+      // displayPopularSearches(popularSearches);
+    })
+    .catch(error => {
+      console.error('Failed to fetch popular searches:', error);
+    });
 });
 /**
  * preventive-features
  * Using BEM naming convention and component-scoped structure
  */
 document.addEventListener('DOMContentLoaded', function() {
-  // API URLs
-  const API_BASE_URL = '/api/preventive-featured';
+  // API Configuration
+  const BASE_URL = 'https://preventivecare-backend.onrender.com';
+  const API_PREFIX = '/api/preventive-featured';
+  
+  // Helper function for API calls
+  function apiCall(endpoint, method = 'GET', data = null) {
+    const url = `${BASE_URL}${API_PREFIX}${endpoint}`;
+    
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+        // Add authorization headers if needed
+      },
+      credentials: 'include'  // Important for cookies if using authentication
+    };
+    
+    if (data && (method === 'POST' || method === 'PUT')) {
+      options.body = JSON.stringify(data);
+    }
+    
+    return fetch(url, options)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        return response.json();
+      })
+      .catch(error => {
+        console.error('API request failed:', error);
+        throw error;
+      });
+  }
   
   // API Functions
   const api = {
-    getArticles: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/articles`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching articles:', error);
-        return [];
-      }
+    getArticles: () => {
+      return apiCall('/articles')
+        .catch(error => {
+          console.error('Error fetching articles:', error);
+          return [];
+        });
     },
     
-    getArticle: async (articleId) => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/articles/${articleId}`);
-        return await response.json();
-      } catch (error) {
-        console.error(`Error fetching article ${articleId}:`, error);
-        return null;
-      }
+    getArticle: (articleId) => {
+      return apiCall(`/articles/${articleId}`)
+        .catch(error => {
+          console.error(`Error fetching article ${articleId}:`, error);
+          return null;
+        });
     },
     
-    getFeaturedArticles: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/featured-articles`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching featured articles:', error);
-        return [];
-      }
+    getFeaturedArticles: () => {
+      return apiCall('/featured-articles')
+        .catch(error => {
+          console.error('Error fetching featured articles:', error);
+          return [];
+        });
     },
     
-    getResources: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/resources`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching resources:', error);
-        return [];
-      }
+    getResources: () => {
+      return apiCall('/resources')
+        .catch(error => {
+          console.error('Error fetching resources:', error);
+          return [];
+        });
     },
     
-    getResource: async (resourceId) => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/resources/${resourceId}`);
-        return await response.json();
-      } catch (error) {
-        console.error(`Error fetching resource ${resourceId}:`, error);
-        return null;
-      }
+    getResource: (resourceId) => {
+      return apiCall(`/resources/${resourceId}`)
+        .catch(error => {
+          console.error(`Error fetching resource ${resourceId}:`, error);
+          return null;
+        });
     },
     
-    getCategories: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/categories`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        return [];
-      }
+    getCategories: () => {
+      return apiCall('/categories')
+        .catch(error => {
+          console.error('Error fetching categories:', error);
+          return [];
+        });
     },
     
-    getCategory: async (categoryId) => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`);
-        return await response.json();
-      } catch (error) {
-        console.error(`Error fetching category ${categoryId}:`, error);
-        return null;
-      }
+    getCategory: (categoryId) => {
+      return apiCall(`/categories/${categoryId}`)
+        .catch(error => {
+          console.error(`Error fetching category ${categoryId}:`, error);
+          return null;
+        });
     },
     
-    getSubcategories: async (categoryId) => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/categories/${categoryId}/subcategories`);
-        return await response.json();
-      } catch (error) {
-        console.error(`Error fetching subcategories for category ${categoryId}:`, error);
-        return [];
-      }
+    getSubcategories: (categoryId) => {
+      return apiCall(`/categories/${categoryId}/subcategories`)
+        .catch(error => {
+          console.error(`Error fetching subcategories for category ${categoryId}:`, error);
+          return [];
+        });
     },
     
-    getHealthTopics: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/health-topics`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching health topics:', error);
-        return [];
-      }
+    getHealthTopics: () => {
+      return apiCall('/health-topics')
+        .catch(error => {
+          console.error('Error fetching health topics:', error);
+          return [];
+        });
     },
     
-    getHealthCalendar: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/health-calendar`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching health calendar:', error);
-        return [];
-      }
+    getHealthCalendar: () => {
+      return apiCall('/health-calendar')
+        .catch(error => {
+          console.error('Error fetching health calendar:', error);
+          return [];
+        });
     },
     
-    getPreventiveTips: async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/preventive-tips`);
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching preventive tips:', error);
-        return [];
-      }
+    getPreventiveTips: () => {
+      return apiCall('/preventive-tips')
+        .catch(error => {
+          console.error('Error fetching preventive tips:', error);
+          return [];
+        });
     }
   };
 
@@ -348,29 +352,149 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Function to load featured articles
-  const loadFeaturedArticles = async () => {
+  const loadFeaturedArticles = () => {
     const featuredArticlesContainer = document.querySelector('.preventive-featured__articles');
     if (!featuredArticlesContainer) return;
     
-    try {
-      const featuredArticles = await api.getFeaturedArticles();
-      if (featuredArticles && featuredArticles.length > 0) {
-        renderFeaturedArticles(featuredArticles, featuredArticlesContainer);
-      }
-    } catch (error) {
-      console.error('Error loading featured articles:', error);
-    }
+    api.getFeaturedArticles()
+      .then(featuredArticles => {
+        if (featuredArticles && featuredArticles.length > 0) {
+          renderFeaturedArticles(featuredArticles, featuredArticlesContainer);
+        }
+      })
+      .catch(error => {
+        console.error('Error loading featured articles:', error);
+      });
   };
 
   // Function to render featured articles
   const renderFeaturedArticles = (articles, container) => {
-    // Add your rendering logic here based on your HTML structure
-    // This is just a placeholder and should be adjusted to match your BEM structure
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create and append article elements
+    articles.forEach(article => {
+      const articleElement = document.createElement('div');
+      articleElement.className = 'preventive-featured__article';
+      
+      // Format date if available
+      const formattedDate = article.publishDate ? new Date(article.publishDate).toLocaleDateString() : '';
+      
+      // Create article content with BEM structure
+      articleElement.innerHTML = `
+        <div class="preventive-featured__article-image">
+          <img src="${article.imageUrl || '/images/placeholder.jpg'}" alt="${article.title}">
+        </div>
+        <div class="preventive-featured__article-content">
+          <h3 class="preventive-featured__article-title">${article.title}</h3>
+          <div class="preventive-featured__article-meta">
+            ${formattedDate ? `<span class="preventive-featured__article-date">${formattedDate}</span>` : ''}
+            ${article.category ? `<span class="preventive-featured__article-category">${article.category}</span>` : ''}
+          </div>
+          <div class="preventive-featured__article-excerpt">${article.excerpt || article.summary || ''}</div>
+          <a href="#" class="preventive-featured__article-link js-show-modal" data-modal-id="modal-${article.id}">
+            Read More
+          </a>
+        </div>
+        <div id="full-content-${article.id}" style="display: none;">
+          <h2>${article.title}</h2>
+          ${article.content || ''}
+        </div>
+      `;
+      
+      container.appendChild(articleElement);
+    });
+    
+    // Reattach event listeners for the newly created modal buttons
+    attachModalEventListeners();
+  };
+  
+  // Function to attach modal event listeners after dynamic content is loaded
+  const attachModalEventListeners = () => {
+    const newShowModalButtons = document.querySelectorAll('.js-show-modal');
+    
+    newShowModalButtons.forEach(button => {
+      if (!button.hasEventListener) {
+        button.addEventListener('click', function(event) {
+          event.preventDefault();
+          const modalId = this.dataset.modalId;
+          const modal = document.getElementById(modalId);
+          if (!modal) return;
+          
+          const fullContentId = `full-content-${modalId.substring(modalId.lastIndexOf('-') + 1)}`;
+          const fullContent = document.getElementById(fullContentId);
+          if (!fullContent) return;
+          
+          modal.classList.add('is-active');
+          modal.querySelector('.preventive-featured__modal-content').innerHTML = fullContent.innerHTML;
+          document.body.style.overflow = 'hidden';
+        });
+        button.hasEventListener = true;
+      }
+    });
   };
 
-  // Initialize API data loading
-  const initializeData = async () => {
-    await loadFeaturedArticles();
+  // Function to load health topics
+  const loadHealthTopics = () => {
+    const topicsContainer = document.querySelector('.preventive-featured__topics');
+    if (!topicsContainer) return;
+    
+    api.getHealthTopics()
+      .then(topics => {
+        if (topics && topics.length > 0) {
+          // Render topics
+          topicsContainer.innerHTML = '';
+          topics.forEach(topic => {
+            const topicElement = document.createElement('div');
+            topicElement.className = 'preventive-featured__topic';
+            topicElement.innerHTML = `
+              <h3 class="preventive-featured__topic-title">${topic.title}</h3>
+              <div class="preventive-featured__topic-description">${topic.description || ''}</div>
+              <a href="${topic.url || '#'}" class="preventive-featured__topic-link">Learn More</a>
+            `;
+            topicsContainer.appendChild(topicElement);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading health topics:', error);
+      });
+  };
+
+  // Function to load preventive tips
+  const loadPreventiveTips = () => {
+    const tipsContainer = document.querySelector('.preventive-featured__tips');
+    if (!tipsContainer) return;
+    
+    api.getPreventiveTips()
+      .then(tips => {
+        if (tips && tips.length > 0) {
+          // Render tips
+          tipsContainer.innerHTML = '';
+          tips.forEach(tip => {
+            const tipElement = document.createElement('div');
+            tipElement.className = 'preventive-featured__tip';
+            tipElement.innerHTML = `
+              <div class="preventive-featured__tip-icon">
+                <i class="${tip.icon || 'icon-health'}"></i>
+              </div>
+              <h4 class="preventive-featured__tip-title">${tip.title}</h4>
+              <div class="preventive-featured__tip-content">${tip.content || ''}</div>
+            `;
+            tipsContainer.appendChild(tipElement);
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error loading preventive tips:', error);
+      });
+  };
+
+  // Initialize all data loading
+  const initializeData = () => {
+    loadFeaturedArticles();
+    loadHealthTopics();
+    loadPreventiveTips();
     // Add other initialization functions as needed
   };
 
@@ -402,6 +526,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const sectionOrder = ['demographic', 'medical-history', 'lifestyle', 'chronic-risks', 'acute-risks'];
     let currentSection = 0;
     
+    // Base API URL
+    const API_BASE_URL = 'https://preventivecare-backend.onrender.com';
+    
     // API endpoints
     const API_ENDPOINTS = {
         ASSESS: '/api/risk-assessment/assess',
@@ -409,6 +536,29 @@ document.addEventListener('DOMContentLoaded', function() {
         GET_RECOMMENDATIONS: '/api/risk-assessment/recommendations/',
         SAVE_ASSESSMENT: '/api/risk-assessment/save-assessment'
     };
+    
+    // Helper function for API calls
+    function apiCall(endpoint, method = 'GET', data = null) {
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        };
+        
+        if (data && (method === 'POST' || method === 'PUT')) {
+            options.body = JSON.stringify(data);
+        }
+        
+        return fetch(API_BASE_URL + endpoint, options)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                return response.json();
+            });
+    }
     
     // Event Listeners
     startAssessmentBtn.addEventListener('click', startAssessment);
@@ -540,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return valid;
     }
     
-    async function submitForm(e) {
+    function submitForm(e) {
         e.preventDefault();
         
         // Validate current section before submitting
@@ -556,47 +706,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            try {
-                // Use the API to calculate risk scores
-                const response = await fetch(API_ENDPOINTS.ASSESS, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formDataObj)
+            // Use the API to calculate risk scores
+            apiCall(API_ENDPOINTS.ASSESS, 'POST', formDataObj)
+                .then(riskScores => {
+                    // Update risk visualization in results
+                    updateRiskVisualization(riskScores);
+                    
+                    // Generate recommendations based on API results
+                    return fetchRecommendations(riskScores)
+                        .then(() => {
+                            // Save assessment results
+                            return saveAssessment(formDataObj, riskScores);
+                        });
+                })
+                .then(() => {
+                    // Show results section
+                    mainContainer.querySelector('.assessment-form').style.display = 'none';
+                    resultsSection.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error during form submission:', error);
+                    alert('خطا در ارزیابی ریسک. لطفاً دوباره تلاش کنید.');
+                    
+                    // Fallback to client-side calculation if API fails
+                    const fallbackScores = calculateRiskScores(formData);
+                    updateRiskVisualization(fallbackScores);
+                    generateRecommendations(fallbackScores, formData);
+                    
+                    // Show results section with fallback data
+                    mainContainer.querySelector('.assessment-form').style.display = 'none';
+                    resultsSection.style.display = 'block';
                 });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to assess risk');
-                }
-                
-                const riskScores = await response.json();
-                
-                // Update risk visualization in results
-                updateRiskVisualization(riskScores);
-                
-                // Generate recommendations based on API results
-                await fetchRecommendations(riskScores);
-                
-                // Save assessment results
-                saveAssessment(formDataObj, riskScores);
-                
-                // Show results section
-                mainContainer.querySelector('.assessment-form').style.display = 'none';
-                resultsSection.style.display = 'block';
-            } catch (error) {
-                console.error('Error during form submission:', error);
-                alert('خطا در ارزیابی ریسک. لطفاً دوباره تلاش کنید.');
-                
-                // Fallback to client-side calculation if API fails
-                const fallbackScores = calculateRiskScores(formData);
-                updateRiskVisualization(fallbackScores);
-                generateRecommendations(fallbackScores, formData);
-                
-                // Show results section with fallback data
-                mainContainer.querySelector('.assessment-form').style.display = 'none';
-                resultsSection.style.display = 'block';
-            }
         }
     }
     
@@ -738,60 +878,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // API function to fetch risk factors
-    async function fetchRiskFactors() {
-        try {
-            const response = await fetch(API_ENDPOINTS.GET_FACTORS);
-            if (!response.ok) {
-                throw new Error('Failed to fetch risk factors');
-            }
-            
-            const factors = await response.json();
-            
-            // This function would update the UI based on returned risk factors
-            // For example, it could populate dropdowns or checkboxes
-            // Implementation depends on your specific UI structure
-            // updateRiskFactorsUI(factors);
-            
-        } catch (error) {
-            console.error('Error fetching risk factors:', error);
-            // Fallback to existing UI structure
-        }
+    function fetchRiskFactors() {
+        apiCall(API_ENDPOINTS.GET_FACTORS)
+            .then(factors => {
+                // This function would update the UI based on returned risk factors
+                // For example, it could populate dropdowns or checkboxes
+                // Implementation depends on your specific UI structure
+                // updateRiskFactorsUI(factors);
+            })
+            .catch(error => {
+                console.error('Error fetching risk factors:', error);
+                // Fallback to existing UI structure
+            });
     }
     
     // API function to fetch recommendations
-    async function fetchRecommendations(riskScores) {
-        try {
-            const recommendationsList = document.getElementById('recommendations-list');
-            recommendationsList.innerHTML = '';
-            
-            // Determine highest risk factor
-            const highestRisk = Object.entries(riskScores).reduce(
-                (max, [key, value]) => value > max.value ? {key, value} : max, 
-                {key: '', value: -1}
-            );
-            
-            // Fetch recommendations for highest risk factor
-            const response = await fetch(API_ENDPOINTS.GET_RECOMMENDATIONS + highestRisk.key);
-            if (!response.ok) {
-                throw new Error('Failed to fetch recommendations');
-            }
-            
-            const recommendations = await response.json();
-            
-            // Update recommendations list
-            recommendations.forEach(rec => {
-                const li = document.createElement('li');
-                li.className = 'recommendations__item';
-                li.textContent = rec;
-                recommendationsList.appendChild(li);
+    function fetchRecommendations(riskScores) {
+        const recommendationsList = document.getElementById('recommendations-list');
+        recommendationsList.innerHTML = '';
+        
+        // Determine highest risk factor
+        const highestRisk = Object.entries(riskScores).reduce(
+            (max, [key, value]) => value > max.value ? {key, value} : max, 
+            {key: '', value: -1}
+        );
+        
+        // Fetch recommendations for highest risk factor
+        return apiCall(API_ENDPOINTS.GET_RECOMMENDATIONS + highestRisk.key)
+            .then(recommendations => {
+                // Update recommendations list
+                recommendations.forEach(rec => {
+                    const li = document.createElement('li');
+                    li.className = 'recommendations__item';
+                    li.textContent = rec;
+                    recommendationsList.appendChild(li);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching recommendations:', error);
+                // Fallback to client-side recommendation generation
+                const formData = new FormData(form);
+                generateRecommendations(riskScores, formData);
             });
-            
-        } catch (error) {
-            console.error('Error fetching recommendations:', error);
-            // Fallback to client-side recommendation generation
-            const formData = new FormData(form);
-            generateRecommendations(riskScores, formData);
-        }
     }
     
     // Fallback recommendations function (unchanged)
@@ -862,33 +990,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // API function to save assessment results
-    async function saveAssessment(formData, riskScores) {
-        try {
-            const assessmentData = {
-                user_data: formData,
-                risk_scores: riskScores,
-                timestamp: new Date().toISOString()
-            };
-            
-            const response = await fetch(API_ENDPOINTS.SAVE_ASSESSMENT, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(assessmentData)
+    function saveAssessment(formData, riskScores) {
+        const assessmentData = {
+            user_data: formData,
+            risk_scores: riskScores,
+            timestamp: new Date().toISOString()
+        };
+        
+        return apiCall(API_ENDPOINTS.SAVE_ASSESSMENT, 'POST', assessmentData)
+            .then(() => {
+                // Assessment saved successfully
+                console.log('Assessment saved successfully');
+            })
+            .catch(error => {
+                console.error('Error saving assessment:', error);
+                // Continue without saving - this doesn't affect the user experience
             });
-            
-            if (!response.ok) {
-                throw new Error('Failed to save assessment');
-            }
-            
-            // Assessment saved successfully
-            console.log('Assessment saved successfully');
-            
-        } catch (error) {
-            console.error('Error saving assessment:', error);
-            // Continue without saving - this doesn't affect the user experience
-        }
     }
     
     function printResults() {
@@ -993,6 +1110,31 @@ class SymptomChecker {
         this.clearForm();
     }
 
+    // Helper function for API calls
+    apiCall(endpoint, method = 'GET', body = null) {
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+
+        return fetch(this.apiBaseUrl + endpoint, options)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errorData => {
+                        console.error('API Error:', errorData);
+                        throw new Error(errorData.message || 'خطا در برقراری ارتباط با سرور.');
+                    });
+                }
+                return response.json();
+            });
+    }
+
     async handleSymptomCheck() {
         this.hideError();
         const age = this.ageInput.value;
@@ -1008,106 +1150,76 @@ class SymptomChecker {
         this.showLoadingState();
 
         try {
-            // First analyze the symptoms with the new /api/symptom-checker/analyze endpoint
-            const analysisResult = await this.analyzeSymptoms(age, gender, symptom, duration);
-            
-            if (!analysisResult) {
-                throw new Error('تحلیل علائم با خطا مواجه شد.');
-            }
-            
-            // Then check/verify the analysis with the test endpoint
-            const testResult = await this.testAnalysis(analysisResult.analysisId || analysisResult.id);
-            
-            if (testResult) {
-                this.aiResponseDiv.textContent = testResult.diagnosis || testResult.result;
-                this.resultsSection.classList.remove('symptom-checker__hidden');
-            } else {
-                this.showError('پاسخی از سرور دریافت نشد.');
-            }
+            // First analyze the symptoms with the /api/symptom-checker/analyze endpoint
+            this.apiCall('/api/symptom-checker/analyze', 'POST', { age, gender, symptoms: symptom, duration })
+                .then(analysisResult => {
+                    if (!analysisResult) {
+                        throw new Error('تحلیل علائم با خطا مواجه شد.');
+                    }
+                    
+                    // Then check/verify the analysis with the test endpoint
+                    return this.apiCall('/api/symptom-checker/test', 'POST', { 
+                        analysisId: analysisResult.analysisId || analysisResult.id 
+                    });
+                })
+                .then(testResult => {
+                    if (testResult) {
+                        this.aiResponseDiv.textContent = testResult.diagnosis || testResult.result;
+                        this.resultsSection.classList.remove('symptom-checker__hidden');
+                    } else {
+                        this.showError('پاسخی از سرور دریافت نشد.');
+                    }
+                    this.hideLoadingState();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.showError(error.message || 'خطا در برقراری ارتباط با سرور.');
+                    this.hideLoadingState();
+                });
         } catch (error) {
             console.error('Error:', error);
             this.showError(error.message || 'خطا در برقراری ارتباط با سرور.');
-        } finally {
             this.hideLoadingState();
         }
     }
 
-    // New method for the analyze endpoint
-    async analyzeSymptoms(age, gender, symptoms, duration) {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/api/symptom-checker/analyze`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ age, gender, symptoms, duration })
+    // Method for the analyze endpoint
+    analyzeSymptoms(age, gender, symptoms, duration) {
+        return this.apiCall('/api/symptom-checker/analyze', 'POST', { age, gender, symptoms, duration })
+            .then(data => {
+                console.log('Analysis Result:', data);
+                return data;
+            })
+            .catch(error => {
+                console.error('Analysis Fetch error:', error);
+                throw error;
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Analysis Error:', errorData);
-                throw new Error(errorData.message || 'خطا در تحلیل علائم.');
-            }
-
-            const data = await response.json();
-            console.log('Analysis Result:', data);
-            return data;
-        } catch (error) {
-            console.error('Analysis Fetch error:', error);
-            throw error;
-        }
     }
 
-    // New method for the test endpoint
-    async testAnalysis(analysisId) {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/api/symptom-checker/test`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ analysisId })
+    // Method for the test endpoint
+    testAnalysis(analysisId) {
+        return this.apiCall('/api/symptom-checker/test', 'POST', { analysisId })
+            .then(data => {
+                console.log('Test Result:', data);
+                return data;
+            })
+            .catch(error => {
+                console.error('Test Fetch error:', error);
+                throw error;
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Test Error:', errorData);
-                throw new Error(errorData.message || 'خطا در بررسی نتایج.');
-            }
-
-            const data = await response.json();
-            console.log('Test Result:', data);
-            return data;
-        } catch (error) {
-            console.error('Test Fetch error:', error);
-            throw error;
-        }
     }
 
     // Keep the original method for backward compatibility
-    async checkSymptoms(age, gender, symptoms, duration) {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/api/symptom-checker/check`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ age, gender, symptoms, duration })
+    checkSymptoms(age, gender, symptoms, duration) {
+        return this.apiCall('/api/symptom-checker/check', 'POST', { age, gender, symptoms, duration })
+            .then(data => {
+                console.log(data);
+                return data.diagnosis;
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                throw error;
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Error:', errorData);
-                throw new Error(errorData.message || 'An error occurred.');
-            }
-
-            const data = await response.json();
-            console.log(data);
-            return data.diagnosis;
-        } catch (error) {
-            console.error('Fetch error:', error);
-            throw error;
-        }
     }
 
     showLoadingState() {
@@ -1121,13 +1233,13 @@ class SymptomChecker {
     }
 }
 
-
 document.addEventListener('DOMContentLoaded', () => {
     new SymptomChecker();
 });
 // Health Exploration Component JavaScript (Scoped to "he" namespace)
 // Function to fetch articles and populate the cards
 // Add event listeners to all "مشاهده مقاله" buttons
+// Helper function for API calls
 document.querySelectorAll('.he-card__btn').forEach(button => {
   button.addEventListener('click', event => {
     // Get the card to identify the content to display
@@ -1160,8 +1272,8 @@ document.querySelectorAll('.he-modal__download-btn').forEach(button => {
   button.addEventListener('click', event => {
     const paperId = event.target.dataset.paperId;
     if (paperId) {
-      // Call the API to download the paper
-      fetch(`/api/health-exploration/papers/${paperId}/download`, {
+      // Call the API to download the paper - using the full URL
+      fetch(`https://preventivecare-backend.onrender.com/api/health-exploration/papers/${paperId}/download`, {
         method: 'GET',
       })
       .then(response => {
@@ -1215,6 +1327,85 @@ document.querySelector('.he-modal').addEventListener('click', event => {
 let currentUser = null;
 let currentRoom = null;
 let socket = null;
+
+// Simple helper function for API calls
+function apiCall(endpoint) {
+  return fetch('https://preventivecare-backend.onrender.com' + endpoint)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+      return response.json();
+    })
+    .catch(error => {
+      console.error('API call error:', error);
+      throw error;
+    });
+}
+
+// Function to load papers
+function loadPapers(container, category = null, page = 1) {
+  let endpoint = `/api/health-exploration/papers?page=${page}&limit=10`;
+  if (category) {
+    endpoint += `&category=${encodeURIComponent(category)}`;
+  }
+  
+  apiCall(endpoint)
+    .then(data => {
+      // Process the paper data here
+      console.log('Papers loaded:', data);
+      // You can add code here to render the papers to the container
+    })
+    .catch(error => {
+      console.error('Error loading papers:', error);
+    });
+}
+
+// Function to get paper details
+function getPaperDetails(paperId) {
+  apiCall(`/api/health-exploration/papers/${paperId}`)
+    .then(paper => {
+      console.log('Paper details:', paper);
+      // You can add code here to display the paper details
+    })
+    .catch(error => {
+      console.error(`Error getting paper details for ID ${paperId}:`, error);
+    });
+}
+
+// Function to get paper categories
+function getPaperCategories() {
+  apiCall('/api/health-exploration/papers/categories')
+    .then(categories => {
+      console.log('Paper categories:', categories);
+      // You can add code here to populate a category dropdown
+    })
+    .catch(error => {
+      console.error('Error getting paper categories:', error);
+    });
+}
+
+// Function to get featured papers
+function getFeaturedPapers() {
+  apiCall('/api/health-exploration/papers/featured')
+    .then(papers => {
+      console.log('Featured papers:', papers);
+      // You can add code here to display featured papers
+    })
+    .catch(error => {
+      console.error('Error getting featured papers:', error);
+    });
+}
+
+// You can call these functions as needed, for example:
+// document.addEventListener('DOMContentLoaded', () => {
+//   const paperContainer = document.getElementById('paper-container');
+//   if (paperContainer) {
+//     loadPapers(paperContainer);
+//   }
+//   getFeaturedPapers();
+//   getPaperCategories();
+// });
 /* Health Chat Module with Namespacing */
 const HealthChat = (function() {
   /* Private Variables */
@@ -1223,7 +1414,41 @@ const HealthChat = (function() {
   let socket = null;
   let reconnectionAttempts = 0;
   const maxReconnectionAttempts = 5;
-  const API_BASE_URL = '/api/health-chat';
+  const API_BASE_URL = 'https://preventivecare-backend.onrender.com/api/health-chat';
+
+  /* Helper function for API calls */
+  function apiCall(endpoint, method = 'GET', data = null) {
+    const url = API_BASE_URL + endpoint;
+    const options = {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include' // Include cookies for session management
+    };
+
+    if (data && (method === 'POST' || method === 'PUT')) {
+      options.body = JSON.stringify(data);
+    }
+
+    return fetch(url, options)
+      .then(response => {
+        if (!response.ok) {
+          return response.json().catch(() => {
+            throw new Error(`API Error: ${response.status}`);
+          }).then(errorData => {
+            throw new Error(errorData.detail || `API Error: ${response.status}`);
+          });
+        }
+        
+        // For endpoints that might return no content
+        if (response.status === 204) {
+          return null;
+        }
+
+        return response.json();
+      });
+  }
 
   /* DOM Elements Cache */
   let DOM = {};
@@ -1356,114 +1581,85 @@ const HealthChat = (function() {
   }
 
   /* API Functions */
-  async function fetchAPI(endpoint, method = 'GET', data = null) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const options = {
-      method: method,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
-    if (data && (method === 'POST' || method === 'PUT')) {
-      options.body = JSON.stringify(data);
-    }
-
-    try {
-      const response = await fetch(url, options);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `API Error: ${response.status}`);
-      }
-      
-      // For endpoints that might return no content
-      if (response.status === 204) {
-        return null;
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('API Error:', error);
-      throw error;
-    }
-  }
-
-  async function loginUser(username, password) {
-    try {
-      await fetchAPI('/login', 'POST', { username, password });
-      currentUser = username;
-      showChatInterface(username);
-    } catch (error) {
-      alert('ورود ناموفق بود! نام کاربری یا رمز عبور اشتباه است.');
-      console.error('Login error:', error);
-    }
-  }
-
-  async function registerUser(username, password) {
-    try {
-      await fetchAPI('/register', 'POST', { username, password });
-      alert('ثبت نام با موفقیت انجام شد! لطفا وارد شوید.');
-      DOM.showLoginLink.click();
-    } catch (error) {
-      alert('ثبت نام ناموفق بود! لطفا ورودی های خود را بررسی کنید.');
-      console.error('Registration error:', error);
-    }
-  }
-
-  async function logoutUser() {
-    try {
-      await fetchAPI('/logout', 'POST');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-    
-    // Continue with original logout logic
-    currentUser = null;
-    currentRoom = null;
-    disconnectSocket();
-    DOM.chatContainer.classList.add('health-chat__chat--hidden');
-    DOM.authContainer.classList.remove('hidden');
-  }
-
-  async function fetchRooms() {
-    try {
-      return await fetchAPI('/rooms');
-    } catch (error) {
-      console.error('Error fetching rooms:', error);
-      return [];
-    }
-  }
-
-  async function getRoomData(roomId) {
-    try {
-      return await fetchAPI(`/rooms/${roomId}`);
-    } catch (error) {
-      console.error('Error getting room data:', error);
-      return null;
-    }
-  }
-
-  async function fetchMessages(roomId) {
-    try {
-      return await fetchAPI(`/rooms/${roomId}/messages`);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      return [];
-    }
-  }
-
-  async function sendMessageAPI(roomId, message) {
-    try {
-      await fetchAPI(`/rooms/${roomId}/messages`, 'POST', { 
-        message,
-        time: new Date().toLocaleTimeString()
+  function loginUser(username, password) {
+    return apiCall('/login', 'POST', { username, password })
+      .then(() => {
+        currentUser = username;
+        showChatInterface(username);
+      })
+      .catch(error => {
+        alert('ورود ناموفق بود! نام کاربری یا رمز عبور اشتباه است.');
+        console.error('Login error:', error);
       });
-      return true;
-    } catch (error) {
+  }
+
+  function registerUser(username, password) {
+    return apiCall('/register', 'POST', { username, password })
+      .then(() => {
+        alert('ثبت نام با موفقیت انجام شد! لطفا وارد شوید.');
+        if (DOM.showLoginLink) {
+          DOM.showLoginLink.click();
+        }
+      })
+      .catch(error => {
+        alert('ثبت نام ناموفق بود! لطفا ورودی های خود را بررسی کنید.');
+        console.error('Registration error:', error);
+      });
+  }
+
+  function logoutUser() {
+    return apiCall('/logout', 'POST')
+      .catch(error => {
+        console.error('Logout error:', error);
+      })
+      .finally(() => {
+        // Continue with logout logic regardless of API success
+        currentUser = null;
+        currentRoom = null;
+        disconnectSocket();
+        if (DOM.chatContainer) {
+          DOM.chatContainer.classList.add('health-chat__chat--hidden');
+        }
+        if (DOM.authContainer) {
+          DOM.authContainer.classList.remove('hidden');
+        }
+      });
+  }
+
+  function fetchRooms() {
+    return apiCall('/rooms')
+      .catch(error => {
+        console.error('Error fetching rooms:', error);
+        return [];
+      });
+  }
+
+  function getRoomData(roomId) {
+    return apiCall(`/rooms/${roomId}`)
+      .catch(error => {
+        console.error('Error getting room data:', error);
+        return null;
+      });
+  }
+
+  function fetchMessages(roomId) {
+    return apiCall(`/rooms/${roomId}/messages`)
+      .catch(error => {
+        console.error('Error fetching messages:', error);
+        return [];
+      });
+  }
+
+  function sendMessageAPI(roomId, message) {
+    return apiCall(`/rooms/${roomId}/messages`, 'POST', { 
+      message,
+      time: new Date().toLocaleTimeString()
+    })
+    .then(() => true)
+    .catch(error => {
       console.error('Error sending message:', error);
       return false;
-    }
+    });
   }
 
   /* Send the current message */
@@ -1492,8 +1688,12 @@ const HealthChat = (function() {
 
   /* Chat Functions */
   function showChatInterface(username) {
-    DOM.authContainer.classList.add('hidden');
-    DOM.chatContainer.classList.remove('health-chat__chat--hidden');
+    if (DOM.authContainer) {
+      DOM.authContainer.classList.add('hidden');
+    }
+    if (DOM.chatContainer) {
+      DOM.chatContainer.classList.remove('health-chat__chat--hidden');
+    }
     if (DOM.currentUser) {
       DOM.currentUser.textContent = username;
     }
@@ -1547,8 +1747,8 @@ const HealthChat = (function() {
     }
 
     try {
-      // Replace with your actual server URL
-      socket = io("https://www.wellnesssentinel.ir", {
+      // Socket connection with proper URL
+      socket = io("https://preventivecare-backend.onrender.com", {
         transports: ["websocket", "polling"],
         reconnectionAttempts: maxReconnectionAttempts
       });
@@ -1578,7 +1778,7 @@ const HealthChat = (function() {
         reconnectWithDelay();
       });
 
-       socket.on('reconnect_attempt', (attemptNumber) => {
+      socket.on('reconnect_attempt', (attemptNumber) => {
         console.log(`Attempting to reconnect... (attempt ${attemptNumber})`);
         displayErrorMessage(`تلاش برای اتصال مجدد... (تلاش ${attemptNumber})`);
       });
@@ -1664,6 +1864,8 @@ const HealthChat = (function() {
   }
 
   function displayErrorMessage(message) {
+    if (!DOM.messages) return;
+    
     const errorEl = document.createElement('div');
     errorEl.className = 'health-chat__message health-chat__message--error';
     errorEl.textContent = message;
